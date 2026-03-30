@@ -415,7 +415,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Setup | 2/2 | Complete   | 2026-03-30 |
+| 1. Foundation & Setup | 2/2 | Complete    | 2026-03-30 |
 | 2. Lobby & Room System | 0/10 | Not started | - |
 | 3. Core Game Loop | 0/10 | Not started | - |
 | 4. Economic Tiles | 0/10 | Not started | - |
