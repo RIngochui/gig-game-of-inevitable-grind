@@ -74,6 +74,19 @@ function findRoomCodeBySocketId(socketId) {
   return undefined;
 }
 
+/**
+ * Cancel a scheduled room cleanup (called when a player rejoins the room).
+ * @param {string} roomCode
+ */
+function cancelCleanup(roomCode) {
+  const room = getRoom(roomCode);
+  if (room && room.cleanupTimer) {
+    clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = null;
+    console.log(`[cleanup] Room ${roomCode} cleanup cancelled (player rejoined)`);
+  }
+}
+
 // ── Domain constants ───────────────────────────────────────────────────────
 
 const GAME_PHASES = {
@@ -264,6 +277,41 @@ io.on('connection', (socket) => {
   socket.on('disconnect', (reason) => {
     connectedSockets.delete(socket.id);
     console.log(`[disconnect] ${socket.id} — ${reason}  (total: ${connectedSockets.size})`);
+
+    // Find which room this socket was in
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return; // Socket wasn't in any game room
+
+    const room = getRoom(roomCode);
+    if (!room) return;
+
+    const player = room.players.get(socket.id);
+    const playerName = player ? player.name : 'Unknown';
+
+    // Remove player from room
+    room.players.delete(socket.id);
+
+    if (room.players.size === 0) {
+      // Room is empty — schedule cleanup after 30 minutes (allow rejoin window)
+      room.cleanupTimer = setTimeout(() => {
+        const currentRoom = getRoom(roomCode);
+        if (currentRoom && currentRoom.players.size === 0) {
+          deleteRoom(roomCode);
+          console.log(`[cleanup] Room ${roomCode} deleted after 30-minute timeout`);
+        }
+      }, 30 * 60 * 1000);
+    } else {
+      // Broadcast to remaining players
+      io.to(roomCode).emit('playerLeft', {
+        socketId: socket.id,
+        playerName,
+        remainingPlayers: room.players.size,
+        timestamp: Date.now()
+      });
+
+      // Send updated game state to remaining players
+      io.to(roomCode).emit('gameState', getFullState(room));
+    }
   });
 });
 
@@ -287,7 +335,7 @@ httpServer.listen(PORT, () => {
 
 module.exports = {
   app, httpServer, io, rooms, connectedSockets,
-  generateRoomCode, getRoom, setRoom, deleteRoom, findRoomCodeBySocketId,
+  generateRoomCode, getRoom, setRoom, deleteRoom, findRoomCodeBySocketId, cancelCleanup,
   createPlayer, createGameRoom,
   GAME_PHASES, TURN_PHASES, STARTING_MONEY,
   getFullState
