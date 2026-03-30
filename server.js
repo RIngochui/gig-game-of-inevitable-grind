@@ -30,12 +30,19 @@ const io = new Server(httpServer, {
 // ── In-memory rooms store (populated in later tasks) ──────────────────────
 const rooms = new Map(); // Map<roomCode, GameRoom>
 
-// ── Connection handler (expanded in Task 3) ────────────────────────────────
+const connectedSockets = new Set();
+
+// ── Connection handler ────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`[connect]  ${socket.id}`);
+  connectedSockets.add(socket.id);
+  console.log(`[connect]  ${socket.id}  (total: ${connectedSockets.size})`);
+
+  // Confirm connection to client
+  socket.emit('connected', { socketId: socket.id });
 
   socket.on('disconnect', (reason) => {
-    console.log(`[disconnect] ${socket.id} — ${reason}`);
+    connectedSockets.delete(socket.id);
+    console.log(`[disconnect] ${socket.id} — ${reason}  (total: ${connectedSockets.size})`);
   });
 });
 
@@ -44,4 +51,4 @@ httpServer.listen(PORT, () => {
   console.log(`Careers server running on http://localhost:${PORT}`);
 });
 
-module.exports = { app, httpServer, io, rooms };
+module.exports = { app, httpServer, io, rooms, connectedSockets };
