@@ -71,6 +71,7 @@ The main loop is a **40-tile square track**. Tile positions are not fully sequen
 ### Roll-to-Move Flow
 
 - **D-05:** Server-authoritative: player emits `roll-dice`, server rolls 2d6 (main loop) or 1d6 (career/college), calculates new position with `(currentPos + roll) % BOARD_SIZE`, emits `move-token {roll, fromPosition, toPosition, steps}` to room.
+- **D-05b:** **Alternative to rolling — Experience cards:** During `WAITING_FOR_ROLL`, a player may instead emit `play-experience-card {cardId}`. Server uses the card's value (1–6) as the movement amount, same position calculation and `move-token` broadcast. Card is consumed from hand. Experience cards are gained automatically on career path completion (not drawn from a deck).
 - **D-06:** Client receives `move-token` and animates the token moving step by step (one tile per frame or 500ms total). Server does not wait for animation to complete before continuing — client-side only.
 - **D-07:** After emitting `move-token`, server emits `tile-landed {playerId, tileIndex, tileType}` and routes to the tile dispatch handler.
 
@@ -105,6 +106,7 @@ The main loop is a **40-tile square track**. Tile positions are not fully sequen
 <specifics>
 ## Specific Ideas
 
+- **Experience cards** — numbered 1–6, automatically gained when a player completes a career path. Played voluntarily during `WAITING_FOR_ROLL` instead of rolling dice — gives the player deterministic movement (strategic: you can see the board and pick the card value that lands you where you want). Consumed on use.
 - **"Laid off due to AI boom"** — event tile inside the Tech Bro career loop (Phase 7 event deck). Noted here as a canonical funny moment the user wants included.
 - **Cop career quota mechanic** — on career start, Cop player must send one other player to prison immediately (hitting quota). When Cop players are active, prison bond payments go to Cops (split evenly) instead of bank. Captured for Phase 6.
 - **Experience cards** — gained on career path completion. Can be used instead of rolling to move a fixed number of spaces. Full mechanic TBD. Deferred to backlog.
@@ -160,7 +162,7 @@ No external specs — requirements are fully captured in this document and the f
 
 - **14 remaining board tiles** — economic, life event, luck/hazard, and other tile types; exact positions and counts TBD in future phase discussions.
 - **Corner tile effects** — Payday, Park Bench, Hospital effects to be fully defined in relevant future phases.
-- **Experience cards** — gained on career completion, usable instead of rolling. New mechanic not in v1 requirements. Add to roadmap backlog.
+- **Experience card deck composition** — exact distribution of 1–6 values per career path (e.g., does every career always give the same card value, or is it random?). TBD in Phase 7 context. Phase 3 just needs the `play-experience-card` socket event and movement logic; the grant-on-completion mechanic is Phase 7.
 - **Art degree / Gender Studies degree** — 2 new college degrees needed for Artist and D&I Officer careers. Flag for Phase 7 (college paths) context discussion.
 - **Cop bond mechanic** — prison bond payments route to active Cop players. Flag for Phase 6 (prison) context discussion.
 - **Opportunity card details** — exact set of cards per career, which ones waive degree/fee, deck size; TBD in Phase 7 context.
