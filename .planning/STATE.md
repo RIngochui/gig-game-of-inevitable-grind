@@ -3,37 +3,37 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-30T05:37:00Z"
+last_updated: "2026-03-30T05:38:00Z"
 progress:
   total_phases: 11
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State: Careers — Modern Edition
 
-**Last updated:** 2026-03-30 after completing Phase 1 Plan 01
+**Last updated:** 2026-03-30 after completing Phase 1 Plan 02
 
-**Progress:** [█████░░░░░] 50%
+**Progress:** [██████████] 100% of Phase 1
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-**Current focus:** Phase 1 — Foundation & Setup (Plan 01 complete, Plan 02 pending)
+**Current focus:** Phase 1 — Foundation & Setup COMPLETE (both plans done)
 
 ## Current Status
 
 **Phase:** 01-foundation-setup
-**Current Plan:** Plan 01 COMPLETE
-**Stopped at:** Completed 01-foundation-setup plan 01
-**Next action:** Execute Phase 1 Plan 02
+**Current Plan:** Plan 02 COMPLETE
+**Stopped at:** Completed 01-foundation-setup plan 02
+**Next action:** Execute Phase 2 (Lobby & Room System)
 
 ## Phase Progress
 
-- [ ] Phase 1: Foundation & Setup (1/2 plans complete)
+- [x] Phase 1: Foundation & Setup (2/2 plans complete)
 - [ ] Phase 2: Lobby & Room System
 - [ ] Phase 3: Core Game Loop
 - [ ] Phase 4: Economic Tiles
@@ -57,9 +57,13 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-03-30 | Factory pattern (plain objects) for createPlayer/createGameRoom | JSON serialization safety across socket events |
 | 2026-03-30 | module.exports from server.js exposes all helpers | Enables test imports without starting HTTP server |
 | 2026-03-30 | generateRoomCode uses do-while collision guard | Guarantees uniqueness even under high room count |
+| 2026-03-30 | getFullState redacts successFormula for all except requestingSocketId | Privacy by default; clients never receive opponents' formulas |
+| 2026-03-30 | STATE_BROADCAST_INTERVAL and HEARTBEAT_LOOP both use .unref() | Jest process exits cleanly without clearInterval calls |
+| 2026-03-30 | cancelCleanup exported for use by lobby join handler | Allows rejoin within 30-min window to cancel room deletion |
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01-foundation-setup | 01 | 15min | 5 | 12 |
+| 01-foundation-setup | 02 | 6min | 5 | 6 |

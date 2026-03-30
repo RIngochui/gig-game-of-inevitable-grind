@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation & Setup** — Project scaffolding, npm, Express, Socket.io room infrastructure
+- [x] **Phase 1: Foundation & Setup** — Project scaffolding, npm, Express, Socket.io room infrastructure (completed 2026-03-30)
 - [ ] **Phase 2: Lobby & Room System** — Room creation/join, player connection, Success Formula submission
 - [ ] **Phase 3: Core Game Loop** — Dice rolling, token movement, turn progression, drains
 - [ ] **Phase 4: Economic Tiles** — Sports Betting, Investment Pool, Crypto, Tax, Stimulus, Scratch, Nepotism, Union, Ponzi
@@ -415,7 +415,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Setup | 1/2 | In Progress|  |
+| 1. Foundation & Setup | 2/2 | Complete   | 2026-03-30 |
 | 2. Lobby & Room System | 0/10 | Not started | - |
 | 3. Core Game Loop | 0/10 | Not started | - |
 | 4. Economic Tiles | 0/10 | Not started | - |
