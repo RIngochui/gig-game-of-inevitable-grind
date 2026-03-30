@@ -4,21 +4,21 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: 2
 status: Executing Phase 02
-stopped_at: Completed 02-lobby-room-system plan 02
-last_updated: "2026-03-30T21:20:22Z"
+stopped_at: Completed 02-lobby-room-system plan 04
+last_updated: "2026-03-30T21:32:15.138Z"
 progress:
   total_phases: 11
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State: GIG: Game of Inevitable Grind
 
-**Last updated:** 2026-03-30 after completing Phase 2 Plan 02 (lobby server handlers)
+**Last updated:** 2026-03-30 after completing Phase 2 Plan 04 (player lobby screen)
 
-**Progress:** [███████░░░] 67% of Phase 2
+**Progress:** [██████████] 100%
 
 ## Project Reference
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Phase:** 2
 **Current Plan:** 2
-**Stopped at:** Completed 02-lobby-room-system plan 02
+**Stopped at:** Completed 02-lobby-room-system plan 04
 **Next action:** Continue Phase 2 plans (frontend lobby UI)
 
 ## Phase Progress
@@ -66,6 +66,8 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-03-30 | successFormula stored server-side only — never in any socket emit payload | Privacy by default; grep confirms zero emit occurrences |
 | 2026-03-30 | playerList [{name,hasSubmittedFormula}] broadcast on playerJoined and playerLeft | Consistent shape for host UI to update lobby display |
 | 2026-03-30 | Fisher-Yates shuffle via playerIds.sort(() => Math.random() - 0.5) | Turn order randomization at game start |
+| 2026-03-30 | Player IIFE appended after host IIFE in client/game.ts | Shared bundle; page-specific DOM guard keeps them isolated |
+| 2026-03-30 | formulaSubmitted handler shows count only — formula values never logged or displayed client-side | Privacy preserved: server never sends money/fame/happiness in formulaSubmitted event |
 
 ## Performance Metrics
 
@@ -75,3 +77,5 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 01-foundation-setup | 02 | 6min | 5 | 6 |
 | 02-lobby-room-system | 01 | 1min | 1 | 1 |
 | 02-lobby-room-system | 02 | 5min | 2 | 2 |
+| Phase 02-lobby-room-system P03 | 2min | 2 tasks | 4 files |
+| Phase 02-lobby-room-system P04 | 3min | 2 tasks | 2 files |

@@ -10,7 +10,7 @@
 ## Phases
 
 - [x] **Phase 1: Foundation & Setup** — Project scaffolding, npm, Express, Socket.io room infrastructure (completed 2026-03-30)
-- [ ] **Phase 2: Lobby & Room System** — Room creation/join, player connection, Success Formula submission
+- [x] **Phase 2: Lobby & Room System** — Room creation/join, player connection, Success Formula submission (completed 2026-03-30)
 - [ ] **Phase 3: Core Game Loop** — Dice rolling, token movement, turn progression, drains
 - [ ] **Phase 4: Economic Tiles** — Sports Betting, Investment Pool, Crypto, Tax, Stimulus, Scratch, Nepotism, Union, Ponzi
 - [ ] **Phase 5: Life Event Tiles** — Marriage, Kids, Burnout, Midlife Crisis, Therapy, Reality TV, Viral, Cancelled, Lawsuit, Luck/Hazard
@@ -416,7 +416,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Setup | 2/2 | Complete    | 2026-03-30 |
-| 2. Lobby & Room System | 2/4 | In Progress|  |
+| 2. Lobby & Room System | 4/4 | Complete   | 2026-03-30 |
 | 3. Core Game Loop | 0/10 | Not started | - |
 | 4. Economic Tiles | 0/10 | Not started | - |
 | 5. Life Event Tiles | 0/10 | Not started | - |
