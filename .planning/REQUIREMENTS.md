@@ -16,13 +16,13 @@
 
 ### Lobby & Room System
 
-- [ ] **LOBBY-01**: Host can create a room, receives a 4-letter room code
-- [ ] **LOBBY-02**: Players can join a room by entering the room code
-- [ ] **LOBBY-03**: Host screen displays all connected players and their chosen names
-- [ ] **LOBBY-04**: Host can start the game once at least 2 players have joined
-- [ ] **LOBBY-05**: Each player secretly sets a Success Formula: 60 points split across Money/Fame/Happiness before game starts
-- [ ] **LOBBY-06**: Game cannot start until all players have submitted their Success Formula
-- [ ] **LOBBY-07**: Player disconnection during lobby removes them from the room
+- [x] **LOBBY-01**: Host can create a room, receives a 4-letter room code
+- [x] **LOBBY-02**: Players can join a room by entering the room code
+- [x] **LOBBY-03**: Host screen displays all connected players and their chosen names
+- [x] **LOBBY-04**: Host can start the game once at least 2 players have joined
+- [x] **LOBBY-05**: Each player secretly sets a Success Formula: 60 points split across Money/Fame/Happiness before game starts
+- [x] **LOBBY-06**: Game cannot start until all players have submitted their Success Formula
+- [x] **LOBBY-07**: Player disconnection during lobby removes them from the room
 
 ### Core Game Loop
 
