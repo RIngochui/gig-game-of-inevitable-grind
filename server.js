@@ -325,13 +325,39 @@ function getFullState(room, requestingSocketId = null) {
   };
 }
 
+// ── Heartbeat state ────────────────────────────────────────────────────────
+// Tracks lastPong for sockets not yet assigned to a room
+const socketLastPong = new Map(); // Map<socketId, timestamp>
+
+const HEARTBEAT_INTERVAL_MS = 30000;  // send ping every 30s
+const HEARTBEAT_TIMEOUT_MS  = 60000;  // disconnect if no pong for 60s
+
 // ── Connection handler ────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   connectedSockets.add(socket.id);
   console.log(`[connect]  ${socket.id}  (total: ${connectedSockets.size})`);
 
+  socketLastPong.set(socket.id, Date.now()); // initialise on connect
+
   // Confirm connection to client
   socket.emit('connected', { socketId: socket.id });
+
+  // ── Heartbeat: update lastPong when client responds ──────────────────────
+  socket.on('pong', () => {
+    // Update lastPong on the player object if they are in a room
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (roomCode) {
+      const room = getRoom(roomCode);
+      if (room) {
+        const player = room.players.get(socket.id);
+        if (player) {
+          player.lastPong = Date.now();
+        }
+      }
+    }
+    // Also track on a top-level map for sockets not yet in a room
+    socketLastPong.set(socket.id, Date.now());
+  });
 
   // Send full state immediately when a socket requests sync (on join/reconnect)
   socket.on('requestSync', ({ roomCode }) => {
@@ -345,6 +371,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     clearRateLimitState(socket.id);
+    socketLastPong.delete(socket.id);
     connectedSockets.delete(socket.id);
     console.log(`[disconnect] ${socket.id} — ${reason}  (total: ${connectedSockets.size})`);
 
@@ -398,6 +425,25 @@ const STATE_BROADCAST_INTERVAL = setInterval(() => {
 // Prevent Jest from hanging: expose for cleanup
 STATE_BROADCAST_INTERVAL.unref(); // Allow process to exit even if interval is active
 
+// ── Heartbeat loop (every 30s) ────────────────────────────────────────────
+const HEARTBEAT_LOOP = setInterval(() => {
+  const now = Date.now();
+
+  for (const [socketId, socket] of io.sockets.sockets) {
+    // Send ping to each connected socket
+    socket.emit('ping');
+
+    // Check if socket has been silent for more than 60 seconds
+    const lastPong = socketLastPong.get(socketId) || 0;
+    if (now - lastPong > HEARTBEAT_TIMEOUT_MS) {
+      console.log(`[heartbeat] Disconnecting zombie socket ${socketId} (no pong for ${HEARTBEAT_TIMEOUT_MS}ms)`);
+      socket.disconnect(true);
+    }
+  }
+}, HEARTBEAT_INTERVAL_MS);
+
+HEARTBEAT_LOOP.unref(); // Allow process to exit even if interval is active
+
 // ── Start ──────────────────────────────────────────────────────────────────
 httpServer.listen(PORT, () => {
   console.log(`Careers server running on http://localhost:${PORT}`);
@@ -409,5 +455,6 @@ module.exports = {
   createPlayer, createGameRoom,
   GAME_PHASES, TURN_PHASES, STARTING_MONEY,
   getFullState,
-  RATE_LIMITS, checkRateLimit, clearRateLimitState, rateLimitState
+  RATE_LIMITS, checkRateLimit, clearRateLimitState, rateLimitState,
+  socketLastPong, HEARTBEAT_INTERVAL_MS, HEARTBEAT_TIMEOUT_MS
 };
