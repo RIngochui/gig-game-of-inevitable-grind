@@ -399,6 +399,159 @@ io.on('connection', (socket) => {
     socket.emit('gameState', getFullState(room, socket.id));
   });
 
+  socket.on('create-room', () => {
+    if (!checkRateLimit(socket.id, 'create-room')) return;
+
+    const roomCode = generateRoomCode();
+    const room = createGameRoom(roomCode, socket.id);
+    setRoom(roomCode, room);
+    socket.join(roomCode);
+
+    socket.emit('roomCreated', { roomCode, hostSocketId: socket.id });
+    console.log(`[create-room] ${roomCode} created by ${socket.id}`);
+  });
+
+  socket.on('join-room', ({ roomCode, playerName }: { roomCode: string; playerName: string }) => {
+    if (!checkRateLimit(socket.id, 'join-room')) return;
+
+    const code = (roomCode ?? '').trim().toUpperCase();
+    const room = getRoom(code);
+
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gamePhase !== GAME_PHASES.LOBBY) {
+      socket.emit('error', { message: 'Game already in progress' });
+      return;
+    }
+    if (room.players.size >= 6) {
+      socket.emit('error', { message: 'Room is full (max 6 players)' });
+      return;
+    }
+
+    const trimmed = (playerName ?? '').trim();
+    if (!trimmed || trimmed.length < 1 || trimmed.length > 20 || !/^[a-zA-Z0-9 ]+$/.test(trimmed)) {
+      socket.emit('error', { message: 'Name must be 1-20 alphanumeric characters (spaces OK)' });
+      return;
+    }
+    const lower = trimmed.toLowerCase();
+    const isDup = Array.from(room.players.values()).some(p => p.name.toLowerCase() === lower);
+    if (isDup) {
+      socket.emit('error', { message: 'Name already taken in this room' });
+      return;
+    }
+
+    const player = createPlayer(socket.id, trimmed, false);
+    room.players.set(socket.id, player);
+    socket.join(code);
+    cancelCleanup(code);
+
+    const playerList = Array.from(room.players.values()).map(p => ({
+      name: p.name,
+      hasSubmittedFormula: p.hasSubmittedFormula
+    }));
+
+    io.to(code).emit('playerJoined', {
+      playerName: trimmed,
+      connectedCount: room.players.size,
+      playerList
+    });
+
+    socket.emit('roomState', getFullState(room, socket.id));
+    console.log(`[join-room] ${trimmed} joined ${code} (${room.players.size} players)`);
+  });
+
+  socket.on('submit-formula', ({ money, fame, happiness }: { money: unknown; fame: unknown; happiness: unknown }) => {
+    if (!checkRateLimit(socket.id, 'submit-formula')) return;
+
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+
+    const player = room.players.get(socket.id);
+    if (!player) { socket.emit('error', { message: 'You are not in this room' }); return; }
+
+    if (!isValidFormula({ money, fame, happiness })) {
+      const sum = typeof money === 'number' && typeof fame === 'number' && typeof happiness === 'number'
+        ? money + fame + happiness : 'invalid';
+      socket.emit('error', { message: `Formula must sum to exactly 60 (received: ${sum})` });
+      return;
+    }
+
+    // Store server-side — NEVER broadcast these values
+    player.successFormula = { money: money as number, fame: fame as number, happiness: happiness as number };
+    player.hasSubmittedFormula = true;
+
+    const submittedCount = Array.from(room.players.values()).filter(p => p.hasSubmittedFormula).length;
+
+    io.to(roomCode).emit('formulaSubmitted', {
+      playerName: player.name,
+      submittedCount,
+      totalPlayerCount: room.players.size
+    });
+
+    socket.emit('formulaAccepted', { message: 'Your Success Formula has been set' });
+    console.log(`[submit-formula] ${player.name} in ${roomCode} (${submittedCount}/${room.players.size})`);
+  });
+
+  socket.on('start-game', () => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+
+    if (room.hostSocketId !== socket.id) {
+      socket.emit('error', { message: 'Only the host can start the game' });
+      return;
+    }
+    if (room.players.size < 2) {
+      socket.emit('error', { message: `Need at least 2 players (currently ${room.players.size})` });
+      return;
+    }
+
+    const notReady = Array.from(room.players.values()).filter(p => !p.hasSubmittedFormula);
+    if (notReady.length > 0) {
+      socket.emit('error', {
+        message: `Waiting for ${notReady.length} player(s) to submit formula: ${notReady.map(p => p.name).join(', ')}`
+      });
+      return;
+    }
+
+    // Fisher-Yates shuffle
+    const playerIds = Array.from(room.players.keys());
+    const turnOrder = playerIds.sort(() => Math.random() - 0.5);
+
+    room.gamePhase = GAME_PHASES.PLAYING;
+    room.turnOrder = turnOrder;
+    room.currentTurnIndex = 0;
+    room.startedAt = Date.now();
+
+    const firstId = turnOrder[0];
+
+    io.to(roomCode).emit('gameStarted', {
+      gamePhase: GAME_PHASES.PLAYING,
+      turnOrder: turnOrder.map(id => room.players.get(id)!.name),
+      currentPlayerName: room.players.get(firstId)!.name,
+      currentPlayerSocketId: firstId,
+      players: Array.from(room.players.values()).map(p => ({
+        socketId: p.socketId,
+        name: p.name,
+        position: 0,
+        money: STARTING_MONEY,
+        fame: 0,
+        happiness: 0
+        // successFormula intentionally omitted
+      })),
+      timestamp: Date.now()
+    });
+
+    console.log(`[start-game] ${roomCode} started. Order: ${turnOrder.map(id => room.players.get(id)!.name).join(' => ')}`);
+  });
+
   socket.on('disconnect', (reason: string) => {
     clearRateLimitState(socket.id);
     socketLastPong.delete(socket.id);
@@ -429,6 +582,10 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         playerName,
         remainingPlayers: room.players.size,
+        playerList: Array.from(room.players.values()).map(p => ({
+          name: p.name,
+          hasSubmittedFormula: p.hasSubmittedFormula
+        })),
         timestamp: Date.now()
       });
       io.to(roomCode).emit('gameState', getFullState(room));
