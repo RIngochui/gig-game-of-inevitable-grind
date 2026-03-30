@@ -74,6 +74,111 @@ function findRoomCodeBySocketId(socketId) {
   return undefined;
 }
 
+// ── Domain constants ───────────────────────────────────────────────────────
+
+const GAME_PHASES = {
+  LOBBY: 'lobby',
+  PLAYING: 'playing',
+  FINAL_ROUND: 'finalRound',
+  ENDED: 'ended'
+};
+
+const TURN_PHASES = {
+  WAITING_FOR_ROLL: 'WAITING_FOR_ROLL',
+  MID_ROLL: 'MID_ROLL',
+  LANDED: 'LANDED',
+  TILE_RESOLVING: 'TILE_RESOLVING',
+  WAITING_FOR_NEXT_TURN: 'WAITING_FOR_NEXT_TURN'
+};
+
+const STARTING_MONEY = 50000;
+
+// ── Player factory ────────────────────────────────────────────────────────
+
+/**
+ * Create a new Player state object.
+ * @param {string} socketId
+ * @param {string} name
+ * @param {boolean} isHost
+ * @returns {object}
+ */
+function createPlayer(socketId, name, isHost = false) {
+  return {
+    socketId,
+    name,
+    isHost,
+    // Stats
+    money: STARTING_MONEY,
+    fame: 0,
+    happiness: 0,
+    // Board position
+    position: 0,
+    // Status flags
+    inPrison: false,
+    skipNextTurn: false,
+    retired: false,
+    unemployed: false,
+    // Life events
+    isMarried: false,
+    kids: 0,
+    collegeDebt: 0,
+    degree: null,          // null | 'compSci' | 'business' | 'healthSciences' | 'teaching'
+    career: null,          // null | string (career path name)
+    hasStudentLoans: false,
+    // Overlays for character portrait
+    hasWeddingRing: false,
+    hasSportsCar: false,
+    hasLandlordHat: false,
+    graduationCapColor: null,  // null | 'blue' | 'green' | 'red' | 'purple'
+    careerBadge: null,
+    // Success Formula (set in lobby, kept secret)
+    successFormula: null,   // null | { money: number, fame: number, happiness: number }
+    hasSubmittedFormula: false,
+    // Cards in hand
+    luckCards: [],
+    // Heartbeat
+    lastPong: Date.now()
+  };
+}
+
+// ── GameRoom factory ──────────────────────────────────────────────────────
+
+/**
+ * Create a new GameRoom state object.
+ * @param {string} roomCode
+ * @param {string} hostSocketId
+ * @returns {object}
+ */
+function createGameRoom(roomCode, hostSocketId) {
+  return {
+    id: roomCode,
+    hostSocketId,
+    // Map<socketId, Player>
+    players: new Map(),
+    // Turn order — array of socketIds shuffled at game start
+    turnOrder: [],
+    currentTurnIndex: 0,
+    // Game phase
+    gamePhase: GAME_PHASES.LOBBY,
+    // Turn phase (within a player's turn)
+    turnPhase: TURN_PHASES.WAITING_FOR_ROLL,
+    // Board state (populated in Phase 3+)
+    board: [],
+    // Shared resources
+    sharedResources: {
+      investmentPool: 0,      // grows when players miss on Investment Pool tile
+      cryptoInvestments: new Map()  // Map<socketId, amount>
+    },
+    // Cleanup timer reference (set on empty room)
+    cleanupTimer: null,
+    // Turn history (last 10 turns)
+    turnHistory: [],
+    // Game metadata
+    createdAt: Date.now(),
+    startedAt: null
+  };
+}
+
 const connectedSockets = new Set();
 
 // ── Connection handler ────────────────────────────────────────────────────
@@ -95,4 +200,9 @@ httpServer.listen(PORT, () => {
   console.log(`Careers server running on http://localhost:${PORT}`);
 });
 
-module.exports = { app, httpServer, io, rooms, connectedSockets, generateRoomCode, getRoom, setRoom, deleteRoom, findRoomCodeBySocketId };
+module.exports = {
+  app, httpServer, io, rooms, connectedSockets,
+  generateRoomCode, getRoom, setRoom, deleteRoom, findRoomCodeBySocketId,
+  createPlayer, createGameRoom,
+  GAME_PHASES, TURN_PHASES, STARTING_MONEY
+};
