@@ -2,13 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>GIG — Player</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; max-width: 480px; margin: 0 auto; }
+    h1 { text-align: center; color: #f0c040; margin-bottom: 24px; }
+    h2 { text-align: center; margin-bottom: 16px; }
+    .section { padding: 8px 0; }
+    .form-group { margin: 16px 0; }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    input[type="text"] { width: 100%; padding: 12px; font-size: 1.1rem; background: #16213e; color: #eee; border: 2px solid #333; border-radius: 8px; }
+    input[type="text"]#room-code-input { text-transform: uppercase; letter-spacing: 0.15em; }
+    input[type="text"].error { border-color: #f87171; }
+    .btn-primary { width: 100%; padding: 14px; font-size: 1.2rem; font-weight: bold; background: #4ade80; color: #1a1a2e; border: none; border-radius: 12px; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary:not(:disabled):hover { background: #22c55e; }
+    .error-msg { color: #f87171; font-size: 0.85rem; margin-top: 8px; min-height: 1.2em; }
+    /* Slider styles */
+    .slider-group { margin: 20px 0; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .slider-label { font-size: 1rem; font-weight: bold; }
+    .slider-value { font-size: 1rem; color: #f0c040; font-family: monospace; min-width: 28px; text-align: right; }
+    input[type="range"] { width: 100%; height: 8px; border-radius: 4px; background: #16213e; -webkit-appearance: none; cursor: pointer; margin: 0; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #4ade80; cursor: pointer; }
+    #formula-sum-display { text-align: center; font-size: 1.6rem; margin: 20px 0 6px; font-family: monospace; font-weight: bold; }
+    #formula-sum-display.valid { color: #4ade80; }
+    #formula-sum-display.invalid { color: #f87171; }
+    #formula-hint { text-align: center; color: #aaa; font-size: 0.9rem; min-height: 1.2em; margin-bottom: 16px; }
+    /* Waiting screen */
+    #waiting-section { text-align: center; padding: 48px 20px; }
+    #waiting-section h2 { color: #4ade80; }
+    #waiting-section p { color: #aaa; }
+    #game-section { display: none; }
+  </style>
 </head>
 <body>
-  <h1>GIG — Player</h1>
-  <p id="status">Connecting...</p>
+  <h1>GIG</h1>
+
+  <!-- JOIN SECTION — visible on load -->
+  <div id="join-section" class="section">
+    <div class="form-group">
+      <label for="room-code-input">Room Code</label>
+      <input type="text" id="room-code-input" maxlength="4" placeholder="ABCD"
+             autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+    </div>
+    <div class="form-group">
+      <label for="player-name">Your Name</label>
+      <input type="text" id="player-name" maxlength="20" placeholder="Enter your name"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <p class="error-msg" id="join-error"></p>
+    <button class="btn-primary" id="join-btn" disabled>Join Game</button>
+  </div>
+
+  <!-- FORMULA SECTION — hidden until join success -->
+  <div id="formula-section" class="section" style="display:none">
+    <h2>Your Success Formula</h2>
+    <p style="text-align:center;color:#aaa;font-size:0.9rem;margin-bottom:20px">
+      Split 60 points across Money, Fame, and Happiness. This is your secret win condition.
+    </p>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">Money</span>
+        <span class="slider-value" id="money-value">20</span>
+      </div>
+      <input type="range" id="formula-money" min="0" max="60" step="1" value="20">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">Fame</span>
+        <span class="slider-value" id="fame-value">20</span>
+      </div>
+      <input type="range" id="formula-fame" min="0" max="60" step="1" value="20">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">Happiness</span>
+        <span class="slider-value" id="happiness-value">20</span>
+      </div>
+      <input type="range" id="formula-happiness" min="0" max="60" step="1" value="20">
+    </div>
+
+    <div id="formula-sum-display" class="valid">60 / 60</div>
+    <div id="formula-hint">Ready to submit!</div>
+    <p class="error-msg" id="formula-error"></p>
+    <button class="btn-primary" id="formula-submit">Submit Formula</button>
+  </div>
+
+  <!-- WAITING SECTION — hidden until formula submitted -->
+  <div id="waiting-section" style="display:none">
+    <h2>Formula Submitted!</h2>
+    <p>Your secret formula is locked in.</p>
+    <p id="waiting-status">Waiting for host to start the game...</p>
+  </div>
+
+  <!-- GAME SECTION — Phase 3+ -->
+  <div id="game-section"></div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="game.js"></script>
 </body>
