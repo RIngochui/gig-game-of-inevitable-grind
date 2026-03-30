@@ -123,6 +123,14 @@ None - no external service configuration required.
 - 1d6 career/college path roll is deferred to Phase 7 per plan (D-05 note)
 - play-experience-card (D-05b) deferred to Phase 7
 
+## Self-Check: PASSED
+
+- tests/game-loop.test.ts: FOUND
+- server.ts: FOUND
+- 03-01-SUMMARY.md: FOUND
+- Commit 2869317 (test scaffold): FOUND
+- Commit 14028b2 (BOARD_TILES + roll-dice): FOUND
+
 ---
 *Phase: 03-core-game-loop*
 *Completed: 2026-03-30*
