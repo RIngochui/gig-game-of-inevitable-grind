@@ -409,3 +409,135 @@
         renderAllDots();
     });
 })();
+// ── Player Game Logic ──────────────────────────────────────────────────────
+(function initPlayerGame() {
+    if (!document.getElementById('roll-btn'))
+        return;
+    // Uses socket created in initPlayerLobby (same page).
+    // Socket.io returns the same underlying connection when io() is called
+    // multiple times from the same page without options (v4 behaviour).
+    const socket = io();
+    const rollBtn = document.getElementById('roll-btn');
+    const turnIndicator = document.getElementById('turn-indicator');
+    const drainNotif = document.getElementById('drain-notification');
+    const moneyDisplay = document.getElementById('money-display');
+    const lastRollDisplay = document.getElementById('last-roll-display');
+    let mySocketId = null;
+    let currentTurnPlayerId = null;
+    let currentTurnPhase = 'WAITING_FOR_ROLL';
+    // If socket already connected (possible when initPlayerLobby ran first), grab id immediately
+    if (socket.id)
+        mySocketId = socket.id;
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function updateRollButton() {
+        const isMyTurn = (mySocketId !== null && currentTurnPlayerId === mySocketId);
+        const canRoll = isMyTurn && currentTurnPhase === 'WAITING_FOR_ROLL';
+        rollBtn.disabled = !canRoll;
+        rollBtn.style.opacity = canRoll ? '1' : '0.35';
+        rollBtn.style.cursor = canRoll ? 'pointer' : 'not-allowed';
+    }
+    function showDrainNotification(deductions) {
+        const lines = deductions.map(d => {
+            const label = d.type === 'marriage' ? 'Marriage'
+                : d.type === 'kids' ? 'Kids'
+                    : d.type === 'student_loans' ? 'Student Loan' : d.type;
+            return `-$${d.amount.toLocaleString()} ${label}`;
+        });
+        drainNotif.innerHTML = 'Drains Applied:<br>' + lines.join('<br>');
+        drainNotif.style.opacity = '1';
+        setTimeout(() => {
+            drainNotif.style.opacity = '0';
+        }, 3000);
+    }
+    function updateTurnIndicator(currentPlayerName) {
+        if (currentTurnPlayerId === mySocketId) {
+            turnIndicator.textContent = 'Your Turn!';
+            turnIndicator.style.color = '#f0c040';
+        }
+        else {
+            turnIndicator.textContent = `Waiting for ${currentPlayerName}...`;
+            turnIndicator.style.color = '#aaa';
+        }
+    }
+    // ── Socket event handlers ─────────────────────────────────────────────
+    socket.on('connected', ({ socketId }) => {
+        mySocketId = socketId;
+        updateRollButton();
+    });
+    socket.on('gameStarted', ({ currentPlayerSocketId, currentPlayerName }) => {
+        const waitingSection = document.getElementById('waiting-section');
+        const gameSection = document.getElementById('game-section');
+        if (waitingSection)
+            waitingSection.style.display = 'none';
+        if (gameSection)
+            gameSection.style.display = 'block';
+        currentTurnPlayerId = currentPlayerSocketId;
+        currentTurnPhase = 'WAITING_FOR_ROLL';
+        updateRollButton();
+        updateTurnIndicator(currentPlayerName);
+        if (moneyDisplay)
+            moneyDisplay.textContent = '$50,000';
+    });
+    socket.on('nextTurn', ({ currentPlayer, currentPlayerName }) => {
+        currentTurnPlayerId = currentPlayer;
+        currentTurnPhase = 'WAITING_FOR_ROLL';
+        updateRollButton();
+        updateTurnIndicator(currentPlayerName);
+    });
+    socket.on('drains-applied', ({ playerId, deductions, newMoney }) => {
+        if (playerId === mySocketId) {
+            if (moneyDisplay)
+                moneyDisplay.textContent = `$${newMoney.toLocaleString()}`;
+            if (deductions.length > 0)
+                showDrainNotification(deductions);
+        }
+    });
+    socket.on('move-token', ({ playerId, roll, d1, d2 }) => {
+        if (playerId === mySocketId) {
+            currentTurnPhase = 'MID_ROLL';
+            updateRollButton(); // disable during roll animation
+            if (lastRollDisplay)
+                lastRollDisplay.textContent = `You rolled ${roll} (${d1} + ${d2})`;
+        }
+    });
+    socket.on('turnSkipped', ({ playerId }) => {
+        if (playerId === mySocketId) {
+            if (lastRollDisplay)
+                lastRollDisplay.textContent = 'Your turn was skipped (Burnout)';
+        }
+    });
+    socket.on('gameState', (state) => {
+        // Sync turn state from periodic broadcast
+        if (state.currentTurnPlayer)
+            currentTurnPlayerId = state.currentTurnPlayer;
+        if (state.turnPhase)
+            currentTurnPhase = state.turnPhase;
+        if (state.players && mySocketId && state.players[mySocketId]) {
+            const me = state.players[mySocketId];
+            if (moneyDisplay)
+                moneyDisplay.textContent = `$${me.money.toLocaleString()}`;
+        }
+        updateRollButton();
+    });
+    socket.on('error', ({ message }) => {
+        // Re-enable button on server error (e.g. double-roll rejected)
+        const gameSection = document.getElementById('game-section');
+        if (gameSection && gameSection.style.display !== 'none') {
+            currentTurnPhase = 'WAITING_FOR_ROLL';
+            updateRollButton();
+            console.error('[player game error]', message);
+        }
+    });
+    // ── Roll Dice button — emits roll-dice to server ─────────────────────
+    rollBtn.addEventListener('click', () => {
+        if (rollBtn.disabled)
+            return;
+        rollBtn.disabled = true;
+        rollBtn.style.opacity = '0.35';
+        rollBtn.style.cursor = 'not-allowed';
+        rollBtn.textContent = 'Rolling...';
+        socket.emit('roll-dice'); // server responds with move-token + nextTurn
+        // Restore text after brief delay (server confirms via move-token)
+        setTimeout(() => { rollBtn.textContent = 'Roll Dice'; }, 1000);
+    });
+})();

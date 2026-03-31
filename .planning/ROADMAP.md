@@ -99,13 +99,13 @@
 
 **Requirements:** LOOP-01, LOOP-02, LOOP-03, LOOP-04, LOOP-05, LOOP-06, LOOP-07
 
-**Plans:** 3/4 plans executed
+**Plans:** 3/4 plans executed (plan 04 Tasks 1-2 complete, Task 3 checkpoint pending human-verify)
 
 Plans:
 - [x] 03-01-PLAN.md — BOARD_TILES constant (40 tiles), game-loop test scaffold, roll-dice handler with 2d6 + state guards
 - [x] 03-02-PLAN.md — Drain logic, turn advancement, tile dispatch tests (LOOP-04/05/06 test coverage)
-- [x] 03-03-PLAN.md — Host game section: 40-tile board grid, player dots, turn history sidebar, turn counter
-- [ ] 03-04-PLAN.md — Player roll screen: Roll Dice button (turn-state-aware), drain notifications, money display
+- [ ] 03-03-PLAN.md — Host game section: 40-tile board grid, player dots, turn history sidebar, turn counter
+- [x] 03-04-PLAN.md (Tasks 1-2) — Player roll screen: Roll Dice button (turn-state-aware), drain notifications, money display
 
 ### Success Criteria
 
