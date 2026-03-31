@@ -21,6 +21,66 @@
     #start-btn:not(:disabled):hover { background: #22c55e; }
     #error-msg { color: #f87171; font-size: 0.9rem; margin-top: 12px; min-height: 1.2em; }
     #game-section { display: none; }
+
+    /* ── Game section ── */
+    #game-section { padding: 16px; }
+    #game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px; }
+    #turn-counter { font-size: 1rem; font-weight: 600; color: #f0c040; font-family: monospace; }
+    #current-player-display { font-size: 1.125rem; font-weight: 600; color: #eee; }
+    #game-main { display: flex; gap: 16px; align-items: flex-start; }
+
+    /* Board: square grid, 10 tiles per side */
+    #board-container { flex: 1; min-width: 0; }
+    #board-track {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(4, auto);
+      gap: 3px;
+      background: #16213e;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 8px;
+      position: relative;
+    }
+    .tile {
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: #aaa;
+      font-family: monospace;
+      min-height: 44px;
+      position: relative;
+      cursor: default;
+      transition: background 0.3s;
+    }
+    .tile.current-tile { background: #16213e; border-color: #f0c040; }
+    .tile-label { display: block; font-size: 0.6rem; }
+    .tile-dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 2px; }
+    .player-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.5s ease-out;
+    }
+    .player-dot.active { width: 16px; height: 16px; box-shadow: 0 0 6px currentColor; }
+
+    /* History sidebar */
+    #history-sidebar { width: 220px; flex-shrink: 0; }
+    #history-sidebar h3 { font-size: 0.875rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    #turn-history-list { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
+    #turn-history-list li { padding: 8px 12px; background: #16213e; border-radius: 4px; margin-bottom: 4px; font-size: 0.875rem; color: #aaa; font-family: monospace; }
+    #turn-history-list li.history-empty { color: #555; font-style: italic; }
+
+    /* Responsive: stack on small screens */
+    @media (max-width: 768px) {
+      #game-main { flex-direction: column; }
+      #history-sidebar { width: 100%; }
+      #turn-history-list { max-height: 150px; }
+    }
   </style>
 </head>
 <body>
@@ -38,7 +98,29 @@
 
   <!-- GAME SECTION (Phase 3+) -->
   <div id="game-section">
-    <!-- populated in Phase 3 -->
+    <!-- Header row: turn counter + current player -->
+    <div id="game-header">
+      <span id="turn-counter">Turn 1</span>
+      <span id="current-player-display">Waiting...</span>
+    </div>
+
+    <!-- Main area: board + sidebar -->
+    <div id="game-main">
+      <!-- Board track: 40 tiles arranged in a square grid (4 rows × 10 columns) -->
+      <div id="board-container">
+        <div id="board-track">
+          <!-- 40 tile divs injected by JS: <div class="tile" data-index="N" data-type="TYPE"><span class="tile-label">ABBR</span></div> -->
+        </div>
+      </div>
+
+      <!-- Turn history sidebar -->
+      <div id="history-sidebar">
+        <h3>Turn History</h3>
+        <ul id="turn-history-list">
+          <li class="history-empty">No moves yet</li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
