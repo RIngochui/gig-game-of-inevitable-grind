@@ -135,6 +135,49 @@ describe('LOOP-04 tile dispatch', () => {
     expect(room.currentTurnIndex).toBe(1);
     expect(room.turnOrder[room.currentTurnIndex]).toBe('socket-b');
   });
+
+  it('BOARD_TILES.length equals BOARD_SIZE (40)', () => {
+    expect(BOARD_TILES.length).toBe(BOARD_SIZE);
+    expect(BOARD_TILES.length).toBe(40);
+  });
+
+  it('exactly 10 CAREER_ENTRANCE tiles', () => {
+    const careerEntrances = BOARD_TILES.filter(t => t.type === 'CAREER_ENTRANCE');
+    expect(careerEntrances.length).toBe(10);
+  });
+
+  it('all CAREER_ENTRANCE tiles have a careerName', () => {
+    const careerEntrances = BOARD_TILES.filter(t => t.type === 'CAREER_ENTRANCE');
+    for (const tile of careerEntrances) {
+      expect(tile.careerName).toBeDefined();
+      expect(typeof tile.careerName).toBe('string');
+    }
+  });
+
+  it('exactly 10 OPPORTUNITY tiles', () => {
+    const opportunities = BOARD_TILES.filter(t => t.type === 'OPPORTUNITY');
+    expect(opportunities.length).toBe(10);
+  });
+
+  it('all OPPORTUNITY tiles have a careerName', () => {
+    const opportunities = BOARD_TILES.filter(t => t.type === 'OPPORTUNITY');
+    for (const tile of opportunities) {
+      expect(tile.careerName).toBeDefined();
+      expect(typeof tile.careerName).toBe('string');
+    }
+  });
+
+  it('exactly 4 corner tiles (PAYDAY + PRISON + PARK_BENCH + HOSPITAL)', () => {
+    const corners = BOARD_TILES.filter(t =>
+      t.type === 'PAYDAY' || t.type === 'PRISON' || t.type === 'PARK_BENCH' || t.type === 'HOSPITAL'
+    );
+    expect(corners.length).toBe(4);
+  });
+
+  it('exactly 2 housing tiles (APARTMENT + HOUSE)', () => {
+    const housing = BOARD_TILES.filter(t => t.type === 'APARTMENT' || t.type === 'HOUSE');
+    expect(housing.length).toBe(2);
+  });
 });
 
 // ── LOOP-05: Advance turn ──────────────────────────────────────────────────
@@ -253,6 +296,20 @@ describe('LOOP-07 turn history', () => {
     expect(entry.playerId).toBe('socket-a');
     expect(entry.roll).toBe(7);
     expect(entry.tileType).toBe('PAYDAY');
+    expect(typeof entry.timestamp).toBe('number');
+  });
+
+  it('history entry has all required shape fields: turnNumber, playerId, playerName, roll, fromPosition, toPosition, tileType, timestamp', () => {
+    const room = createMockGameRoom();
+    advanceTurn(room as any, 'TEST', 'socket-a', 'Alice', 9, 5, 14, 'CAREER_ENTRANCE');
+    const entry = room.turnHistory[0] as any;
+    expect(typeof entry.turnNumber).toBe('number');
+    expect(entry.playerId).toBe('socket-a');
+    expect(entry.playerName).toBe('Alice');
+    expect(entry.roll).toBe(9);
+    expect(entry.fromPosition).toBe(5);
+    expect(entry.toPosition).toBe(14);
+    expect(entry.tileType).toBe('CAREER_ENTRANCE');
     expect(typeof entry.timestamp).toBe('number');
   });
 
