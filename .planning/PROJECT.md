@@ -18,6 +18,7 @@ Fun, chaotic, real-time multiplayer party experience that plays in a browser wit
 - ✓ Disconnect cleanup with 30-minute room timeout — Phase 1
 - ✓ Per-socket rate limiting and heartbeat/ping-pong zombie detection — Phase 1
 - ✓ README with 4-step setup (npm install → npm start → ngrok → URLs) — Phase 1
+- ✓ All 10 economic tile server-side handlers: Sports Betting, Investment Pool, COVID Stimulus, Tax Audit, Scratch Ticket, Crypto, Nepotism, Union Strike, Ponzi Scheme, Student Loan Payment — Phase 4
 
 ### Active
 
@@ -98,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 1 completion + rename to GIG + TypeScript migration*
+*Last updated: 2026-04-01 after Phase 4 completion — all 10 economic tile handlers implemented and verified*
