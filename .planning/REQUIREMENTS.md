@@ -36,16 +36,16 @@
 
 ### Board Tiles — Economic
 
-- [ ] **ECON-01**: **Sports Betting** — player bets up to current money, rolls 1 die; 1 = win 6×, else = lose entire bet
-- [ ] **ECON-02**: **Investment Pool** — all players who land must roll 1 die; 1 = win entire pool (resets to $0), else = lose $500 added to pool; pool amount always visible on host screen; big animation on pool win
-- [ ] **ECON-03**: **COVID Stimulus Check** — everyone receives $1,400 flat, no interaction required
-- [ ] **ECON-04**: **Tax Audit** — roll 1 die, lose (result × 5)% of current money
-- [ ] **ECON-05**: **Scratch Ticket** — pay $200, roll die; 1 = win $2,000 / 2–3 = break even / 4–6 = lose $200
-- [ ] **ECON-06**: **Crypto** — player invests any amount; next time they pass this tile, roll die: 1–2 = 3× return / 3–4 = break even / 5–6 = worthless; investment tracked per player
-- [ ] **ECON-07**: **Nepotism** — player gains $1,000, chooses any other player who also receives $500
-- [ ] **ECON-08**: **Union Strike** — all players' money is averaged and redistributed equally
-- [ ] **ECON-09**: **Ponzi Scheme** — steal $1,000 from every other player; Ponzi flag placed on player; next money tile landing repays double to each stolen player, flag removed; surviving to win = got away with it
-- [ ] **ECON-10**: **Student Loan Payment** — players who took college loans automatically deduct $1,000 each time they pass this tile
+- [x] **ECON-01**: **Sports Betting** — player bets up to current money, rolls 1 die; 1 = win 6×, else = lose entire bet
+- [x] **ECON-02**: **Investment Pool** — all players who land must roll 1 die; 1 = win entire pool (resets to $0), else = lose $500 added to pool; pool amount always visible on host screen; big animation on pool win
+- [x] **ECON-03**: **COVID Stimulus Check** — everyone receives $1,400 flat, no interaction required
+- [x] **ECON-04**: **Tax Audit** — roll 1 die, lose (result × 5)% of current money
+- [x] **ECON-05**: **Scratch Ticket** — pay $200, roll die; 1 = win $2,000 / 2–3 = break even / 4–6 = lose $200
+- [x] **ECON-06**: **Crypto** — player invests any amount; next time they pass this tile, roll die: 1–2 = 3× return / 3–4 = break even / 5–6 = worthless; investment tracked per player
+- [x] **ECON-07**: **Nepotism** — player gains $1,000, chooses any other player who also receives $500
+- [x] **ECON-08**: **Union Strike** — all players' money is averaged and redistributed equally
+- [x] **ECON-09**: **Ponzi Scheme** — steal $1,000 from every other player; Ponzi flag placed on player; next money tile landing repays double to each stolen player, flag removed; surviving to win = got away with it
+- [x] **ECON-10**: **Student Loan Payment** — players who took college loans automatically deduct $1,000 each time they pass this tile
 
 ### Board Tiles — Life Events
 

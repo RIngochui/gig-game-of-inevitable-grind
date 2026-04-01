@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4
-status: Executing Phase 03
-stopped_at: Completed 03-core-game-loop plan 04 (Tasks 1-2; checkpoint Task 3 pending human-verify)
-last_updated: "2026-03-31T00:10:30Z"
+current_plan: 1
+status: Executing Phase 4
+stopped_at: Completed 04-economic-tiles plan 00 (Wave 0 scaffold)
+last_updated: "2026-04-01T06:08:38.946Z"
 progress:
   total_phases: 11
-  completed_phases: 2
-  total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_phases: 3
+  total_plans: 15
+  completed_plans: 11
+  percent: 73
 ---
 
 # Project State: GIG: Game of Inevitable Grind
 
-**Last updated:** 2026-03-31 after completing Phase 3 Plan 04 Tasks 1-2 (player roll screen)
+**Last updated:** 2026-04-01 after completing Phase 4 Plan 00 (Wave 0 scaffold: hasPonziFlag + BOARD_TILES + test scaffold)
 
-**Progress:** [█████████░] 90%
+**Progress:** [███████░░░] 73%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-**Current focus:** Phase 03 — core-game-loop
+**Current focus:** Phase 4 — Economic Tiles
 
 ## Current Status
 
-**Phase:** 3
-**Current Plan:** 4
-**Stopped at:** Completed 03-core-game-loop plan 04 (Tasks 1-2; checkpoint Task 3 pending human-verify)
-**Next action:** Human verifies full turn cycle end-to-end (checkpoint:human-verify)
+**Phase:** 4
+**Current Plan:** 1
+**Stopped at:** Completed 04-economic-tiles plan 00 (Wave 0 scaffold)
+**Next action:** Execute plan 04-01 (stateless economic tiles: Sports Betting, COVID Stimulus, Tax Audit, Scratch Ticket)
 
 ## Phase Progress
 
@@ -72,6 +72,8 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-03-31 | BOARD_TILES structural tests use .filter().length pattern | Reusable in future phase tests; matches acceptance criteria grep requirements |
 | 2026-03-31 | socket.id fallback in initPlayerGame after io() call | Handles race where connected fires before IIFE runs on player.html |
 | 2026-03-31 | initPlayerGame IIFE appended after initPlayerLobby in client/game.ts | Player game screen logic isolated via roll-btn DOM guard; same socket connection reused |
+| 2026-04-01 | BOARD_TILES positions 33-35 map to UNION_STRIKE/PONZI_SCHEME/STUDENT_LOAN_PAYMENT | Positions 36-39 remain TBD for future phases per plan specification |
+| 2026-04-01 | hasPonziFlag: boolean added to Player interface | Supports Ponzi Scheme fraud mechanic requiring persistent cross-turn state tracking |
 
 ## Performance Metrics
 
@@ -85,3 +87,4 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | Phase 02-lobby-room-system P04 | 3min | 2 tasks | 2 files |
 | Phase 03-core-game-loop P02 | 4min | 2 tasks | 1 files |
 | 03-core-game-loop | 04 | 4min | 2 | 3 |
+| Phase 04-economic-tiles P00 | 4min | 3 tasks | 2 files |
