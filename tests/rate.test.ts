@@ -22,15 +22,15 @@ afterAll(() => {
 
 describe('checkRateLimit', () => {
   test('returns true for first call on limited event', () => {
-    expect(checkRateLimit('sock-1', 'roll-dice')).toBe(true);
+    expect(checkRateLimit('sock-1', 'create-room')).toBe(true);
   });
 
   test('returns false when maxCalls exceeded within window', () => {
-    const { maxCalls } = RATE_LIMITS['roll-dice'];
+    const { maxCalls } = RATE_LIMITS['create-room'];
     for (let i = 0; i < maxCalls; i++) {
-      checkRateLimit('sock-1', 'roll-dice');
+      checkRateLimit('sock-1', 'create-room');
     }
-    expect(checkRateLimit('sock-1', 'roll-dice')).toBe(false);
+    expect(checkRateLimit('sock-1', 'create-room')).toBe(false);
   });
 
   test('returns true for unknown event (no limit defined)', () => {
@@ -38,27 +38,27 @@ describe('checkRateLimit', () => {
   });
 
   test('rate limits are per-socket (different sockets independent)', () => {
-    const { maxCalls } = RATE_LIMITS['roll-dice'];
+    const { maxCalls } = RATE_LIMITS['create-room'];
     for (let i = 0; i < maxCalls; i++) {
-      checkRateLimit('sock-A', 'roll-dice');
+      checkRateLimit('sock-A', 'create-room');
     }
-    expect(checkRateLimit('sock-A', 'roll-dice')).toBe(false);
-    expect(checkRateLimit('sock-B', 'roll-dice')).toBe(true);
+    expect(checkRateLimit('sock-A', 'create-room')).toBe(false);
+    expect(checkRateLimit('sock-B', 'create-room')).toBe(true);
   });
 
   test('rate limits are per-event (different events independent)', () => {
-    const { maxCalls } = RATE_LIMITS['roll-dice'];
+    const { maxCalls } = RATE_LIMITS['create-room'];
     for (let i = 0; i < maxCalls; i++) {
-      checkRateLimit('sock-1', 'roll-dice');
+      checkRateLimit('sock-1', 'create-room');
     }
-    expect(checkRateLimit('sock-1', 'roll-dice')).toBe(false);
+    expect(checkRateLimit('sock-1', 'create-room')).toBe(false);
     expect(checkRateLimit('sock-1', 'requestSync')).toBe(true);
   });
 });
 
 describe('clearRateLimitState', () => {
   test('removes socket from rateLimitState map', () => {
-    checkRateLimit('sock-1', 'roll-dice');
+    checkRateLimit('sock-1', 'create-room');
     expect(rateLimitState.has('sock-1')).toBe(true);
 
     clearRateLimitState('sock-1');
@@ -71,9 +71,13 @@ describe('clearRateLimitState', () => {
 });
 
 describe('RATE_LIMITS config', () => {
-  test('roll-dice allows 1 call per 3 seconds', () => {
-    expect(RATE_LIMITS['roll-dice'].maxCalls).toBe(1);
-    expect(RATE_LIMITS['roll-dice'].windowMs).toBe(3000);
+  test('create-room has a rate limit configured', () => {
+    expect(RATE_LIMITS['create-room']).toBeDefined();
+    expect(RATE_LIMITS['create-room'].maxCalls).toBeGreaterThan(0);
+  });
+
+  test('roll-dice is not rate-limited (removed to allow normal multi-turn play)', () => {
+    expect(RATE_LIMITS['roll-dice']).toBeUndefined();
   });
 
   test('all limits have maxCalls and windowMs', () => {

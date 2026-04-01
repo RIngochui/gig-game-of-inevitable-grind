@@ -47,13 +47,24 @@ describe('disconnect cleanup logic', () => {
     expect(getRoom('DISC')).toBeDefined();
   });
 
-  test('findRoomCodeBySocketId returns undefined after player removed', () => {
+  test('findRoomCodeBySocketId returns undefined after non-host player removed', () => {
+    const room = createGameRoom('DISC', 'host-1');
+    room.players.set('host-1', createPlayer('host-1', 'Alice', true));
+    room.players.set('guest-2', createPlayer('guest-2', 'Bob'));
+    setRoom('DISC', room);
+
+    room.players.delete('guest-2');
+    expect(findRoomCodeBySocketId('guest-2')).toBeUndefined();
+  });
+
+  test('findRoomCodeBySocketId still finds room via hostSocketId after host removed from players', () => {
     const room = createGameRoom('DISC', 'host-1');
     room.players.set('host-1', createPlayer('host-1', 'Alice', true));
     setRoom('DISC', room);
 
     room.players.delete('host-1');
-    expect(findRoomCodeBySocketId('host-1')).toBeUndefined();
+    // hostSocketId lookup still works — needed for host disconnect cleanup
+    expect(findRoomCodeBySocketId('host-1')).toBe('DISC');
   });
 
   test('second player disconnect: remaining player still in room', () => {
