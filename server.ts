@@ -38,6 +38,7 @@ export interface Player {
   career: string | null;         // null | career path name
   hasStudentLoans: boolean;
   hasPonziFlag: boolean;
+  ponziStolenFrom: Record<string, number>;  // victimId → amountStolen (for exact repayment)
   // Character portrait overlays
   hasWeddingRing: boolean;
   hasSportsCar: boolean;
@@ -237,6 +238,7 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     career: null,
     hasStudentLoans: false,
     hasPonziFlag: false,
+    ponziStolenFrom: {},
     hasWeddingRing: false,
     hasSportsCar: false,
     hasLandlordHat: false,
@@ -504,6 +506,36 @@ function advanceTurn(
   });
 }
 
+function checkAndRepayPonzi(room: GameRoom, roomCode: string): void {
+  const ponziPlayer = Array.from(room.players.values()).find(p => p.hasPonziFlag);
+  if (!ponziPlayer) return;
+
+  const afterBalances: { name: string; newMoney: number }[] = [];
+  let totalRepaid = 0;
+
+  for (const [victimId, amountStolen] of Object.entries(ponziPlayer.ponziStolenFrom)) {
+    const victim = room.players.get(victimId);
+    if (!victim) continue;
+    const repayAmount = amountStolen * 2;
+    victim.money += repayAmount;
+    ponziPlayer.money -= repayAmount;
+    totalRepaid += repayAmount;
+    afterBalances.push({ name: victim.name, newMoney: victim.money });
+  }
+
+  afterBalances.push({ name: ponziPlayer.name, newMoney: ponziPlayer.money });
+  ponziPlayer.hasPonziFlag = false;
+  ponziPlayer.ponziStolenFrom = {};
+
+  io.to(roomCode).emit('tile-ponzi-repaid', {
+    ponziPlayerName: ponziPlayer.name,
+    totalRepaid,
+    afterBalances
+  });
+
+  console.log(`[ponzi-repaid] ${ponziPlayer.name} repaid $${totalRepaid} total to victims in ${roomCode}`);
+}
+
 function dispatchTile(
   room: GameRoom,
   roomCode: string,
@@ -517,6 +549,9 @@ function dispatchTile(
   const tileName = tile?.name ?? 'Unknown';
   const player = room.players.get(playerId);
   if (!player) return;
+
+  // Check and trigger Ponzi repayment on ANY tile landing (not just Ponzi tile)
+  checkAndRepayPonzi(room, roomCode);
 
   room.turnPhase = TURN_PHASES.TILE_RESOLVING;
   console.log(`[tile] ${player.name} landed on ${tileType} (${tileName}) at index ${tileIndex}`);
@@ -674,6 +709,70 @@ function dispatchTile(
         newMoney: player.money
       });
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'SCRATCH_TICKET');
+      break;
+    }
+
+    case 'NEPOTISM': {
+      // ECON-07: current player gains $1,000; chooses another player who receives $500
+      player.money += 1000;
+      const otherPlayers = Array.from(room.players.values())
+        .filter(p => p.socketId !== playerId)
+        .map(p => ({ socketId: p.socketId, name: p.name }));
+      io.sockets.sockets.get(playerId)?.emit('nepotism-choose-beneficiary', {
+        otherPlayers,
+        benefactorName: player.name,
+        benefactorNewMoney: player.money
+      });
+      room.turnPhase = TURN_PHASES.TILE_RESOLVING;
+      break;
+    }
+
+    case 'UNION_STRIKE': {
+      // ECON-08: average all players' money, redistribute equally
+      const totalMoney = Array.from(room.players.values()).reduce((sum, p) => sum + p.money, 0);
+      const playerCount = room.players.size;
+      const equalShare = Math.floor(totalMoney / playerCount);
+      const afterBalances: { name: string; newMoney: number }[] = [];
+      for (const [, p] of room.players) {
+        p.money = equalShare;
+        afterBalances.push({ name: p.name, newMoney: p.money });
+      }
+      io.to(roomCode).emit('tile-union-strike', { playerCount, totalMoney, equalShare, afterBalances });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'UNION_STRIKE');
+      break;
+    }
+
+    case 'PONZI_SCHEME': {
+      // ECON-09: steal min($1,000, victim.money) from each other player; flag for repayment
+      const stealPerPlayer = 1000;
+      const stealFrom: { playerName: string; amount: number }[] = [];
+      let totalStolen = 0;
+      const stolenRecord: Record<string, number> = {};
+      for (const [pid, p] of room.players) {
+        if (pid !== playerId) {
+          const stolen = Math.min(stealPerPlayer, Math.max(0, p.money));
+          if (stolen > 0) {
+            p.money -= stolen;
+            player.money += stolen;
+            totalStolen += stolen;
+            stealFrom.push({ playerName: p.name, amount: stolen });
+          }
+          stolenRecord[pid] = stolen;
+        }
+      }
+      player.hasPonziFlag = true;
+      player.ponziStolenFrom = stolenRecord;
+      io.to(roomCode).emit('tile-ponzi-executed', { playerName: player.name, stealFrom, totalStolen, newMoney: player.money });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PONZI_SCHEME');
+      break;
+    }
+
+    case 'STUDENT_LOAN_PAYMENT': {
+      // ECON-10: deduct $1,000 every landing if player has student loans; negative allowed
+      const hasLoans = player.hasStudentLoans;
+      if (hasLoans) player.money -= 1000;
+      io.to(roomCode).emit('tile-student-loan', { playerName: player.name, hadLoans: hasLoans, deduction: hasLoans ? 1000 : 0, newMoney: player.money });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'STUDENT_LOAN_PAYMENT');
       break;
     }
 
@@ -950,6 +1049,27 @@ io.on('connection', (socket) => {
     console.log(`[roll-dice] ${player.name} rolled ${roll} (${d1}+${d2}): pos ${fromPosition} → ${newPos} (${BOARD_TILES[newPos].name})`);
 
     dispatchTile(room, roomCode, socket.id, newPos, roll, fromPosition);
+  });
+
+  socket.on('nepotism-select', ({ chosenPlayerId }: { chosenPlayerId: string }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+    if (room.gamePhase !== GAME_PHASES.PLAYING) { socket.emit('error', { message: 'Game is not in progress' }); return; }
+    if (room.turnPhase !== TURN_PHASES.TILE_RESOLVING) { socket.emit('error', { message: 'No nepotism pending' }); return; }
+    const currentPlayerId = room.turnOrder[room.currentTurnIndex];
+    if (socket.id !== currentPlayerId) { socket.emit('error', { message: 'Not your turn' }); return; }
+    if (chosenPlayerId === socket.id) { socket.emit('error', { message: 'Cannot choose yourself as beneficiary' }); return; }
+    const beneficiary = room.players.get(chosenPlayerId);
+    if (!beneficiary) { socket.emit('error', { message: 'Chosen player not found in room' }); return; }
+    const benefactor = room.players.get(socket.id)!;
+    beneficiary.money += 500;
+    io.to(roomCode).emit('tile-nepotism-completed', {
+      benefactorName: benefactor.name, benefactorNewMoney: benefactor.money,
+      beneficiaryName: beneficiary.name, beneficiaryNewMoney: beneficiary.money
+    });
+    advanceTurn(room, roomCode, socket.id, benefactor.name, 0, benefactor.position, benefactor.position, 'NEPOTISM');
   });
 
   socket.on('disconnect', (reason: string) => {

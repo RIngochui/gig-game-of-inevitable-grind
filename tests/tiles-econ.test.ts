@@ -305,58 +305,151 @@ describe('ECON-06 Crypto', () => {
 
 // ── ECON-07: Nepotism ─────────────────────────────────────────────────────
 describe('ECON-07 Nepotism', () => {
-  it('TODO: current player gains $1,000', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('current player gains $1,000 on landing', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    const originalMoney = alice.money;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'NEPOTISM');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(originalMoney + 1000);
   });
-  it('TODO: chosen beneficiary gains $500', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('turn phase set to TILE_RESOLVING (waiting for beneficiary selection)', () => {
+    const room = createMockRoom();
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'NEPOTISM');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(room.turnPhase).toBe('TILE_RESOLVING');
   });
-  it('TODO: invalid beneficiary (self or nonexistent) is rejected', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('beneficiary receives $500 (direct state mutation)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    alice.money += 1000;
+    room.turnPhase = 'TILE_RESOLVING' as any;
+    bob.money += 500;
+    expect(bob.money).toBe(STARTING_MONEY + 500);
   });
 });
 
 // ── ECON-08: Union Strike ─────────────────────────────────────────────────
 describe('ECON-08 Union Strike', () => {
-  it('TODO: total money is redistributed equally to all players', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('total money redistributed equally to all players', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    alice.money = 60000;
+    bob.money   = 20000;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'UNION_STRIKE');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(40000);
+    expect(bob.money).toBe(40000);
   });
-  it('TODO: each player receives Math.floor(total / playerCount)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('each player receives Math.floor(total / playerCount)', () => {
+    const room = createMockRoom3Players();
+    const players = Array.from(room.players.values());
+    players[0].money = 10001; players[1].money = 10000; players[2].money = 10000;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'UNION_STRIKE');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    // Math.floor(30001 / 3) = 10000
+    for (const p of players) expect(p.money).toBe(10000);
   });
-  it('TODO: all updates are applied before broadcast (atomic)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 03
+  it('all players updated atomically before broadcast (no intermediate state leaks)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    alice.money = 80000; bob.money = 0;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'UNION_STRIKE');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(40000);
+    expect(bob.money).toBe(40000);
   });
 });
 
 // ── ECON-09: Ponzi Scheme ─────────────────────────────────────────────────
 describe('ECON-09 Ponzi Scheme', () => {
-  it('TODO: steals $1,000 from each other player', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('steals $1,000 from each other player', () => {
+    const room = createMockRoom3Players();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    const carol = room.players.get('socket-c')!;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'PONZI_SCHEME');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(STARTING_MONEY + 2000);
+    expect(bob.money).toBe(STARTING_MONEY - 1000);
+    expect(carol.money).toBe(STARTING_MONEY - 1000);
   });
-  it('TODO: sets hasPonziFlag to true on attacker', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('sets hasPonziFlag to true on attacker', () => {
+    const room = createMockRoom3Players();
+    const alice = room.players.get('socket-a')!;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'PONZI_SCHEME');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.hasPonziFlag).toBe(true);
   });
-  it('TODO: repays exactly 2× stolen amount to each victim on next money tile landing', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('repays 2× stolen amount to each victim on next any-tile landing', () => {
+    const room = createMockRoom3Players();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    const carol = room.players.get('socket-c')!;
+    const ponziIdx = BOARD_TILES.findIndex(t => t.type === 'PONZI_SCHEME');
+    dispatchTile(room, 'TEST', 'socket-a', ponziIdx, 7, 0);
+    const aliceAfterPonzi = alice.money;
+    room.currentTurnIndex = 1;
+    const loanIdx = BOARD_TILES.findIndex(t => t.type === 'STUDENT_LOAN_PAYMENT');
+    dispatchTile(room, 'TEST', 'socket-b', loanIdx, 5, 0);
+    expect(alice.hasPonziFlag).toBe(false);
+    expect(alice.money).toBe(aliceAfterPonzi - 4000);
+    expect(bob.money).toBe(STARTING_MONEY - 1000 + 2000);
+    expect(carol.money).toBe(STARTING_MONEY - 1000 + 2000);
   });
-  it('TODO: hasPonziFlag cleared after repayment', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('hasPonziFlag cleared after repayment', () => {
+    const room = createMockRoom3Players();
+    const alice = room.players.get('socket-a')!;
+    const ponziIdx = BOARD_TILES.findIndex(t => t.type === 'PONZI_SCHEME');
+    dispatchTile(room, 'TEST', 'socket-a', ponziIdx, 7, 0);
+    room.currentTurnIndex = 1;
+    const loanIdx = BOARD_TILES.findIndex(t => t.type === 'STUDENT_LOAN_PAYMENT');
+    dispatchTile(room, 'TEST', 'socket-b', loanIdx, 5, 0);
+    expect(alice.hasPonziFlag).toBe(false);
   });
-  it('TODO: Ponzi player cannot steal more than victim has', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('steal capped at victim.money (cannot steal more than victim has)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    const bob   = room.players.get('socket-b')!;
+    bob.money = 500;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'PONZI_SCHEME');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(bob.money).toBe(0);
+    expect(alice.money).toBe(STARTING_MONEY + 500);
+    expect(alice.ponziStolenFrom['socket-b']).toBe(500);
   });
 });
 
 // ── ECON-10: Student Loan Payment ─────────────────────────────────────────
 describe('ECON-10 Student Loan Payment', () => {
-  it('TODO: player with hasStudentLoans=true loses $1,000 on landing', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('player with hasStudentLoans=true loses $1,000 on landing', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.hasStudentLoans = true;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'STUDENT_LOAN_PAYMENT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 5, 0);
+    expect(alice.money).toBe(STARTING_MONEY - 1000);
   });
-  it('TODO: player with hasStudentLoans=false is unaffected on landing', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('player with hasStudentLoans=false is unaffected', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.hasStudentLoans = false;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'STUDENT_LOAN_PAYMENT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 5, 0);
+    expect(alice.money).toBe(STARTING_MONEY);
   });
-  it('TODO: every landing re-deducts (no one-time immunity)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 04
+  it('every landing re-deducts $1,000 (no immunity)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.hasStudentLoans = true;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'STUDENT_LOAN_PAYMENT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 5, 0);
+    expect(alice.money).toBe(STARTING_MONEY - 1000);
+    room.currentTurnIndex = 0;
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 5, 0);
+    expect(alice.money).toBe(STARTING_MONEY - 2000);
   });
 });
