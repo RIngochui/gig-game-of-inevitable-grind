@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 phase: 04-economic-tiles
 source: [04-00-SUMMARY.md, 04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md]
 started: 2026-04-01T00:00:00Z
@@ -80,9 +80,9 @@ blocked: 0
 ## Gaps
 
 - truth: "npm test runs clean with all 150 project tests passing and 0 failures"
-  status: failed
+  status: resolved
   reason: "User reported: Test Suites: 14 failed, 47 passed, 61 total / Tests: 61 failed, 902 passed, 963 total"
+  root_cause: "testPathIgnorePatterns missing — Jest testMatch glob '**/tests/**/*.test.ts' matched stale stub files in .claude/worktrees/"
+  fix: "Added testPathIgnorePatterns: ['/.claude/worktrees/'] to jest config in package.json (commit 164e47c)"
   severity: major
   test: 1
-  artifacts: []
-  missing: []
