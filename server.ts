@@ -522,6 +522,42 @@ function dispatchTile(
   console.log(`[tile] ${player.name} landed on ${tileType} (${tileName}) at index ${tileIndex}`);
 
   switch (tileType) {
+    case 'SPORTS_BETTING': {
+      // ECON-01: roll=1 win 6×, else lose entire bet (floor 0)
+      const sbBet = player.money;
+      const sbRoll = Math.floor(Math.random() * 6) + 1;
+      if (sbRoll === 1) {
+        player.money = player.money + sbBet * 6;
+      } else {
+        player.money = Math.max(0, player.money - sbBet);
+      }
+      io.to(roomCode).emit('tile-sports-betting', {
+        playerName: player.name,
+        betAmount: sbBet,
+        roll: sbRoll,
+        won: sbRoll === 1,
+        newMoney: player.money
+      });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'SPORTS_BETTING');
+      break;
+    }
+
+    case 'COVID_STIMULUS': {
+      // ECON-03: all players in room receive $1,400 flat, no interaction required
+      const awardAmount = 1400;
+      const playerBalances: { name: string; newMoney: number }[] = [];
+      for (const [, p] of room.players) {
+        p.money += awardAmount;
+        playerBalances.push({ name: p.name, newMoney: p.money });
+      }
+      io.to(roomCode).emit('tile-covid-stimulus', {
+        awardAmount,
+        playerBalances
+      });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'COVID_STIMULUS');
+      break;
+    }
+
     case 'PAYDAY':
     case 'PRISON':
     case 'PARK_BENCH':
