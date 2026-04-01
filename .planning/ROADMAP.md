@@ -128,18 +128,14 @@ Plans:
 
 **Requirements:** ECON-01, ECON-02, ECON-03, ECON-04, ECON-05, ECON-06, ECON-07, ECON-08, ECON-09, ECON-10
 
-### Plans
+**Plans:** 5 plans
 
-1. **Implement Sports Betting tile** — On land: prompt player bet amount (0–current money), roll 1d6: roll=1 wins 6× bet, else loses entire bet; apply money change, broadcast result
-2. **Implement Investment Pool tile** — On land: roll 1d6, if =1 player wins entire pool (reset to $0), else player loses $500 added to pool; maintain pool total in shared state, broadcast pool update + animation
-3. **Implement COVID Stimulus tile** — On land: award all players (in room, not just current) flat $1,400, broadcast to all, no interaction needed
-4. **Implement Tax Audit tile** — On land: roll 1d6, lose (result × 5)% of current money, apply deduction, broadcast result
-5. **Implement Scratch Ticket tile** — On land: player pays $200 (even if insufficient, go negative), roll 1d6: 1=win $2,000 / 2-3=break even / 4-6=lose $200; apply net change, broadcast
-6. **Implement Crypto tile** — On land: allow player to invest any amount (0 to current money), store investment per-player in shared state; on next landing: roll 1d6, 1-2=3× return / 3-4=break even / 5-6=worthless; apply payout or loss, reset investment
-7. **Implement Nepotism tile** — On land: current player gains $1,000, chooses any other player to also receive $500, broadcast to all
-8. **Implement Union Strike tile** — On land: calculate average money across all players, redistribute equally to all, broadcast before/after totals
-9. **Implement Ponzi Scheme tile** — On land: current player steals $1,000 from each other player, mark player with Ponzi flag; next money tile landing by any player repays stolen amount double to each victim, remove flag; if Ponzi flagged player wins game, they "got away with it"
-10. **Implement Student Loan Payment tile** — On land: if player has college loans (debt tracking), deduct $1,000 per loan; every landing on this tile re-deducts, broadcast payment
+Plans:
+- [ ] 04-00-PLAN.md — Test scaffold (tiles-econ.test.ts), Player.hasPonziFlag, BOARD_TILES economic tile types
+- [ ] 04-01-PLAN.md — Stateless tiles: Sports Betting, COVID Stimulus, Tax Audit, Scratch Ticket (ECON-01/03/04/05)
+- [ ] 04-02-PLAN.md — Stateful tiles: Investment Pool, Crypto two-landing cycle (ECON-02/06)
+- [ ] 04-03-PLAN.md — Social tiles: Nepotism (choice-based), Union Strike (redistribution) (ECON-07/08)
+- [ ] 04-04-PLAN.md — Complex tiles: Ponzi Scheme (fraud flag + repayment), Student Loan Payment (ECON-09/10)
 
 ### Success Criteria
 
@@ -153,7 +149,6 @@ Plans:
 - [ ] Landing on Union Strike: all players see average calculated, money redistributed equally
 - [ ] Landing on Ponzi: player flagged, next player landing on money tile repays double, flag cleared
 - [ ] Student Loan: correct deduction per loan type (if college path taken with loans)
-
 ---
 
 ### Phase 5: Life Event Tiles
