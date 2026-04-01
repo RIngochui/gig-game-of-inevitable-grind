@@ -30,6 +30,7 @@
   "jest": {
     "testEnvironment": "node",
     "testMatch": ["**/tests/**/*.test.ts"],
+    "testPathIgnorePatterns": ["/node_modules/", "/.claude/worktrees/"],
     "transform": {
       "^.+\\.tsx?$": ["ts-jest", { "tsconfig": { "module": "CommonJS" } }]
     }
