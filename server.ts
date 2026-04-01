@@ -37,6 +37,7 @@ export interface Player {
   degree: string | null;         // null | 'compSci' | 'business' | 'healthSciences' | 'teaching'
   career: string | null;         // null | career path name
   hasStudentLoans: boolean;
+  hasPonziFlag: boolean;
   // Character portrait overlays
   hasWeddingRing: boolean;
   hasSportsCar: boolean;
@@ -235,6 +236,7 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     degree: null,
     career: null,
     hasStudentLoans: false,
+    hasPonziFlag: false,
     hasWeddingRing: false,
     hasSportsCar: false,
     hasLandlordHat: false,
