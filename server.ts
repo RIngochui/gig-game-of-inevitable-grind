@@ -176,39 +176,39 @@ export const BOARD_TILES: Array<{ type: string; name: string; careerName?: strin
   { type: 'PAYDAY',          name: 'Payday' },                                             // 0  — corner
   { type: 'CAREER_ENTRANCE', name: 'Tech Bro',             careerName: 'techBro' },        // 1
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'techBro' },        // 2
-  { type: 'TBD',             name: 'TBD...' },                                             // 3
+  { type: 'SPORTS_BETTING',  name: 'Sports Betting' },                                     // 3
   { type: 'CAREER_ENTRANCE', name: 'Finance Bro',          careerName: 'financeBro' },     // 4
   { type: 'APARTMENT',       name: 'Apartment' },                                          // 5
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'financeBro' },     // 6
-  { type: 'TBD',             name: 'TBD...' },                                             // 7
+  { type: 'INVESTMENT_POOL', name: 'Investment Pool' },                                    // 7
   { type: 'CAREER_ENTRANCE', name: 'Healthcare Hero',      careerName: 'healthcare' },     // 8
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'healthcare' },     // 9
   { type: 'PRISON',          name: 'Prison' },                                             // 10 — corner
   { type: 'CAREER_ENTRANCE', name: 'Disillusioned Academic', careerName: 'academic' },    // 11
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'academic' },       // 12
-  { type: 'TBD',             name: 'TBD...' },                                             // 13
+  { type: 'COVID_STIMULUS',  name: 'COVID Stimulus Check' },                               // 13
   { type: 'CAREER_ENTRANCE', name: 'Streamer',             careerName: 'streamer' },       // 14
-  { type: 'TBD',             name: 'TBD...' },                                             // 15
+  { type: 'TAX_AUDIT',       name: 'Tax Audit' },                                          // 15
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'streamer' },       // 16
-  { type: 'TBD',             name: 'TBD...' },                                             // 17
+  { type: 'SCRATCH_TICKET',  name: 'Scratch Ticket' },                                    // 17
   { type: 'CAREER_ENTRANCE', name: "McDonald's Employee",  careerName: 'mcdonalds' },      // 18
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'mcdonalds' },      // 19
   { type: 'PARK_BENCH',      name: 'Park Bench' },                                         // 20 — corner
   { type: 'CAREER_ENTRANCE', name: 'Right-Wing Grifter',   careerName: 'grifter' },        // 21
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'grifter' },        // 22
-  { type: 'TBD',             name: 'TBD...' },                                             // 23
+  { type: 'CRYPTO',          name: 'Crypto' },                                             // 23
   { type: 'CAREER_ENTRANCE', name: 'Cop',                  careerName: 'cop' },            // 24
   { type: 'HOUSE',           name: 'House' },                                              // 25
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'cop' },            // 26
-  { type: 'TBD',             name: 'TBD...' },                                             // 27
+  { type: 'NEPOTISM',        name: 'Nepotism' },                                           // 27
   { type: 'CAREER_ENTRANCE', name: 'Artist',               careerName: 'artist' },         // 28
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'artist' },         // 29
   { type: 'HOSPITAL',        name: 'Hospital' },                                           // 30 — corner
   { type: 'CAREER_ENTRANCE', name: 'D&I Officer',          careerName: 'diOfficer' },      // 31
   { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'diOfficer' },      // 32
-  { type: 'TBD',             name: 'TBD...' },                                             // 33
-  { type: 'TBD',             name: 'TBD...' },                                             // 34
-  { type: 'TBD',             name: 'TBD...' },                                             // 35
+  { type: 'UNION_STRIKE',    name: 'Union Strike' },                                       // 33
+  { type: 'PONZI_SCHEME',    name: 'Ponzi Scheme' },                                      // 34
+  { type: 'STUDENT_LOAN_PAYMENT', name: 'Student Loan Payment' },                         // 35
   { type: 'TBD',             name: 'TBD...' },                                             // 36
   { type: 'TBD',             name: 'TBD...' },                                             // 37
   { type: 'TBD',             name: 'TBD...' },                                             // 38
