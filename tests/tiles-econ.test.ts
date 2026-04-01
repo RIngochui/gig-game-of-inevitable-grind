@@ -146,30 +146,82 @@ describe('ECON-03 COVID Stimulus', () => {
 
 // ── ECON-04: Tax Audit ─────────────────────────────────────────────────────
 describe('ECON-04 Tax Audit', () => {
-  it('TODO: deduction = Math.floor(money * (roll * 5) / 100)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+  it('deduction = Math.floor(money * (roll * 5) / 100) — roll=3 on $10,000', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 10000;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(2/6); // floor(2/6 * 6)+1 = 3
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'TAX_AUDIT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(8500); // 10000 - Math.floor(10000 * 15 / 100) = 10000 - 1500
+    mockRandom.mockRestore();
   });
-  it('TODO: roll=6 deducts 30% of current money', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+
+  it('roll=6 deducts 30% — $10,000 becomes $7,000', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 10000;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(5/6); // floor(5/6 * 6)+1 = 6
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'TAX_AUDIT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(7000);
+    mockRandom.mockRestore();
   });
-  it('TODO: result never goes below 0', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+
+  it('result never goes below 0', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 0;
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'TAX_AUDIT');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(0);
   });
 });
 
 // ── ECON-05: Scratch Ticket ────────────────────────────────────────────────
 describe('ECON-05 Scratch Ticket', () => {
-  it('TODO: roll=1 results in net +$1,800 (win $2,000 minus $200 cost)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+  it('roll=1: net +$1,800 (win $2,000 minus $200 cost)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 50000;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(0); // floor(0)+1 = 1
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'SCRATCH_TICKET');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(51800); // 50000 - 200 + 2000
+    mockRandom.mockRestore();
   });
-  it('TODO: roll=2 or roll=3 results in net -$200 (break even after paying $200)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+
+  it('roll=2: break even (net -$200 for cost only)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 50000;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(1/6); // floor(1/6 * 6)+1 = 2
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'SCRATCH_TICKET');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(49800); // 50000 - 200
+    mockRandom.mockRestore();
   });
-  it('TODO: roll=4 through roll=6 results in net -$400 (lose $200 cost + lose $200)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+
+  it('roll=5: lose $200 cost + $200 more = net -$400', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 50000;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(4/6); // floor(4/6 * 6)+1 = 5
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'SCRATCH_TICKET');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(49600); // 50000 - 400
+    mockRandom.mockRestore();
   });
-  it('TODO: money can go negative on scratch ticket (no floor)', () => {
-    expect(true).toBe(false); // STUB — implement in plan 01
+
+  it('money CAN go negative (no Math.max floor)', () => {
+    const room = createMockRoom();
+    const alice = room.players.get('socket-a')!;
+    alice.money = 100;
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValueOnce(4/6); // roll=5
+    const tileIdx = BOARD_TILES.findIndex(t => t.type === 'SCRATCH_TICKET');
+    dispatchTile(room, 'TEST', 'socket-a', tileIdx, 7, 0);
+    expect(alice.money).toBe(-300); // 100 - 200 - 200 = -300
+    mockRandom.mockRestore();
   });
 });
 
