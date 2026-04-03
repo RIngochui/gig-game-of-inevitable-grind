@@ -173,12 +173,13 @@ socket.on('ping', () => { socket.emit('pong'); });
     });
     // ── Formula slider validation ───────────────────────────────────────────────
     function updateFormulaSum() {
-        const money = parseInt(moneySlider.value, 10);
+        const moneyDollars = parseInt(moneySlider.value, 10); // slider in dollars ($0–$600,000)
+        const moneyPoints = moneyDollars / 10000; // convert to points (0–60)
         const fame = parseInt(fameSlider.value, 10);
         const happiness = parseInt(happySlider.value, 10);
-        const sum = money + fame + happiness;
+        const sum = moneyPoints + fame + happiness;
         // Update live value labels
-        moneyVal.textContent = String(money);
+        moneyVal.textContent = '$' + moneyDollars.toLocaleString();
         fameVal.textContent = String(fame);
         happyVal.textContent = String(happiness);
         // Update sum display
@@ -210,17 +211,18 @@ socket.on('ping', () => { socket.emit('pong'); });
     submitBtn.addEventListener('click', (e) => {
         e.preventDefault();
         formulaError.textContent = '';
-        const money = parseInt(moneySlider.value, 10);
+        const moneyDollars = parseInt(moneySlider.value, 10);
+        const moneyPoints = moneyDollars / 10000; // convert back to points for server
         const fame = parseInt(fameSlider.value, 10);
         const happiness = parseInt(happySlider.value, 10);
         // Client-side guard — server validates again
-        if (money + fame + happiness !== 60) {
+        if (moneyPoints + fame + happiness !== 60) {
             formulaError.textContent = 'Formula must sum to exactly 60';
             return;
         }
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
-        socket.emit('submit-formula', { money, fame, happiness });
+        socket.emit('submit-formula', { money: moneyPoints, fame, happiness });
     });
     // ── Socket event handlers ────────────────────────────────────────────────────
     socket.on('connected', () => {
@@ -281,6 +283,22 @@ socket.on('ping', () => { socket.emit('pong'); });
     let currentPlayerId = null;
     let turnHistoryItems = [];
     const MAX_HISTORY = 10;
+    // Board tile data (received on gameStarted) — used for abbreviations and tooltips
+    let boardTilesData = [];
+    // Map tile types to abbreviations (per UI-SPEC.md)
+    const TILE_ABBR = {
+        PAYDAY: 'PAYDAY', OPPORTUNITY_KNOCKS: 'OPP', PAY_TAXES: 'TAXES',
+        STUDENT_LOAN_REDIRECT: 'LOAN', MCDONALDS: "McDONALD'S", APARTMENT: 'APT',
+        SPORTS_BETTING: 'SPORTS', CIGARETTE_BREAK: 'CIGS', UNIVERSITY: 'UNI',
+        PRISON: 'PRISON', FINANCE_BRO: 'FINANCE', ART_GALLERY: 'ART',
+        SUPPLY_TEACHER: 'TEACHER', GYM_MEMBERSHIP: 'GYM', COP: 'COP',
+        LOTTERY: 'LOTTERY', JAPAN_TRIP: 'JAPAN', DEI_OFFICER: 'DEI',
+        REVOLUTION: 'REVOLTN', HOUSE: 'HOUSE', NEPOTISM: 'NEPT',
+        COVID_STIMULUS: 'COVID', TECH_BRO: 'TECH', HOSPITAL: 'HOSP',
+        RIGHT_WING_GRIFTER: 'GRIFTER', OZEMPIC: 'OZEMPIC',
+        STARVING_ARTIST: 'ARTIST', YACHT_HARBOR: 'YACHT',
+        INSTAGRAM_FOLLOWERS: 'INSTA', STREAMER: 'STREAMER',
+    };
     // ── Board initialization ───────────────────────────────────────────────────
     // Map tile index (0-39) to grid row/col on an 11×11 perimeter board
     function getTileGridPos(index) {
@@ -302,6 +320,15 @@ socket.on('ping', () => { socket.emit('pong'); });
             const { row, col } = getTileGridPos(i);
             div.style.gridColumn = String(col);
             div.style.gridRow = String(row);
+            // Inject full tile name and tooltip data from boardTilesData
+            const tileData = boardTilesData[i];
+            const tileName = tileData ? tileData.name : String(i);
+            const instruction = tileData?.description ?? '';
+            div.setAttribute('data-instruction', instruction);
+            const nameEl = document.createElement('span');
+            nameEl.className = 'tile-name';
+            nameEl.textContent = tileName;
+            div.appendChild(nameEl);
             const label = document.createElement('span');
             label.className = 'tile-label';
             label.textContent = `${i}`;
@@ -316,7 +343,7 @@ socket.on('ping', () => { socket.emit('pong'); });
         const center = document.createElement('div');
         center.id = 'board-center';
         center.style.cssText = 'grid-column:2/11;grid-row:2/11;background:#0d0d1e;border-radius:4px;display:flex;align-items:center;justify-content:center;';
-        center.innerHTML = '<span style="font-size:1.4rem;font-weight:bold;color:#f0c040;letter-spacing:0.1em;">GIG</span>';
+        center.innerHTML = '<span style="font-size:1.4rem;font-weight:bold;color:#f0c040;letter-spacing:0.1em;">Modern Careers</span>';
         track.appendChild(center);
         // Assign colors and initial positions
         players.forEach((p, idx) => {
@@ -360,9 +387,11 @@ socket.on('ping', () => { socket.emit('pong'); });
         });
     }
     // ── Socket event handlers ──────────────────────────────────────────────────
-    socket.on('gameStarted', ({ turnOrder, currentPlayerSocketId, currentPlayerName, players }) => {
+    socket.on('gameStarted', ({ turnOrder, currentPlayerSocketId, currentPlayerName, players, boardTiles }) => {
         // initHostLobby's gameStarted handler already handles section visibility;
         // this IIFE focuses on board initialization
+        if (boardTiles)
+            boardTilesData = boardTiles;
         currentPlayerId = currentPlayerSocketId;
         updateCurrentPlayerDisplay(currentPlayerName);
         initBoard(players);
@@ -435,11 +464,22 @@ socket.on('ping', () => { socket.emit('pong'); });
     const rollBtn = document.getElementById('roll-btn');
     const turnIndicator = document.getElementById('turn-indicator');
     const drainNotif = document.getElementById('drain-notification');
-    const moneyDisplay = document.getElementById('money-display');
     const lastRollDisplay = document.getElementById('last-roll-display');
+    // Stat grid references
+    const statMoneyEl = document.getElementById('stat-money');
+    const statFameEl = document.getElementById('stat-fame');
+    const statHapEl = document.getElementById('stat-happiness');
+    const statHpEl = document.getElementById('stat-hp');
+    const statDegreeEl = document.getElementById('stat-degree');
+    const statCareerEl = document.getElementById('stat-career');
+    const tileInstrEl = document.getElementById('active-tile-instruction');
+    const tileNameEl = document.getElementById('tile-name-display');
+    const tileTextEl = document.getElementById('tile-instruction-text');
     let mySocketId = null;
     let currentTurnPlayerId = null;
     let currentTurnPhase = 'WAITING_FOR_ROLL';
+    // Board tile data received on gameStarted — used to look up tile info by position
+    let boardTilesData = [];
     // If socket already connected (possible when initPlayerLobby ran first), grab id immediately
     if (socket.id)
         mySocketId = socket.id;
@@ -479,19 +519,24 @@ socket.on('ping', () => { socket.emit('pong'); });
         mySocketId = socketId;
         updateRollButton();
     });
-    socket.on('gameStarted', ({ currentPlayerSocketId, currentPlayerName }) => {
+    socket.on('gameStarted', ({ currentPlayerSocketId, currentPlayerName, boardTiles }) => {
         const waitingSection = document.getElementById('waiting-section');
         const gameSection = document.getElementById('game-section');
         if (waitingSection)
             waitingSection.style.display = 'none';
         if (gameSection)
             gameSection.style.display = 'block';
+        if (boardTiles)
+            boardTilesData = boardTiles;
         currentTurnPlayerId = currentPlayerSocketId;
         currentTurnPhase = 'WAITING_FOR_ROLL';
         updateRollButton();
         updateTurnIndicator(currentPlayerName);
-        if (moneyDisplay)
-            moneyDisplay.textContent = '$50,000';
+        // Initialize stat grid with defaults (gameState broadcast will update with real values)
+        if (statMoneyEl)
+            statMoneyEl.textContent = '$10,000';
+        if (statHpEl)
+            statHpEl.textContent = '10';
     });
     socket.on('nextTurn', ({ currentPlayer, currentPlayerName }) => {
         currentTurnPlayerId = currentPlayer;
@@ -501,8 +546,8 @@ socket.on('ping', () => { socket.emit('pong'); });
     });
     socket.on('drains-applied', ({ playerId, deductions, newMoney }) => {
         if (playerId === mySocketId) {
-            if (moneyDisplay)
-                moneyDisplay.textContent = `$${newMoney.toLocaleString()}`;
+            if (statMoneyEl)
+                statMoneyEl.textContent = `$${newMoney.toLocaleString()}`;
             if (deductions.length > 0)
                 showDrainNotification(deductions);
         }
@@ -529,8 +574,28 @@ socket.on('ping', () => { socket.emit('pong'); });
             currentTurnPhase = state.turnPhase;
         if (state.players && mySocketId && state.players[mySocketId]) {
             const me = state.players[mySocketId];
-            if (moneyDisplay)
-                moneyDisplay.textContent = `$${me.money.toLocaleString()}`;
+            // Update stat grid
+            if (statMoneyEl)
+                statMoneyEl.textContent = '$' + me.money.toLocaleString();
+            if (statFameEl)
+                statFameEl.textContent = String(me.fame ?? 0);
+            if (statHapEl)
+                statHapEl.textContent = String(me.happiness ?? 0);
+            if (statHpEl)
+                statHpEl.textContent = String(me.hp ?? 10);
+            if (statDegreeEl)
+                statDegreeEl.textContent = me.degree ?? 'None';
+            if (statCareerEl)
+                statCareerEl.textContent = me.career ?? 'None';
+            // Update tile instruction from current position
+            if (me.position !== undefined && boardTilesData.length > 0) {
+                const tile = boardTilesData[me.position];
+                if (tile && tileInstrEl && tileNameEl && tileTextEl) {
+                    tileInstrEl.style.display = 'block';
+                    tileNameEl.textContent = 'Currently on: ' + tile.name;
+                    tileTextEl.textContent = tile.description;
+                }
+            }
         }
         updateRollButton();
     });
