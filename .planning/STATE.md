@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1
+current_plan: 2
 status: Executing Phase 05
-stopped_at: Completed 05-board-reset 05-02-PLAN.md (server core refactor, BOARD_TILES rebuild)
-last_updated: "2026-04-03T03:04:44.602Z"
+stopped_at: "Completed 05-board-reset 05-03-PLAN.md (UI: stat grid, tile instruction panel, host board tooltips)"
+last_updated: "2026-04-03T03:08:53.766Z"
 progress:
   total_phases: 12
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 18
-  completed_plans: 17
-  percent: 94
+  completed_plans: 18
+  percent: 100
 ---
 
 # Project State: Modern Careers
 
-**Last updated:** 2026-04-03 after completing Phase 5 Plan 02 (server core refactor: BOARD_TILES rebuild, HP/salary model, checkWinCondition, dead handlers removed)
+**Last updated:** 2026-04-03 after completing Phase 5 Plan 03 (UI: player stat grid, tile instruction panel, host board tile abbreviations and CSS hover tooltips)
 
-**Progress:** [█████████░] 94%
+**Progress:** [██████████] 100%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-**Current focus:** Phase 05 — board-reset
+**Current focus:** Phase 05 — board-reset (COMPLETE)
 
 ## Current Status
 
 **Phase:** 5
-**Current Plan:** 2
-**Stopped at:** Completed 05-board-reset 05-02-PLAN.md (server core refactor, BOARD_TILES rebuild)
-**Next action:** Execute plan 05-03 (UI updates: HP/salary stat grid, tile tooltips on host board)
+**Current Plan:** 3
+**Stopped at:** Completed 05-board-reset 05-03-PLAN.md (UI: stat grid, tile instruction panel, host board tooltips)
+**Next action:** Phase 5 complete — proceed to Phase 6 (Properties, Prison & Goomba Stomp)
 
 ## Phase Progress
 
@@ -81,6 +81,9 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-04-03 | checkWinCondition: Life Total >= 60 AND formula threshold checks | D-14 through D-16 from CONTEXT.md |
 | 2026-04-03 | SPORTS_BETTING updated: fixed 10,000 stake, win 60,000 on roll=1 (removed all-in) | Phase 5 redesign per GAME-DESIGN.md |
 | 2026-04-03 | COVID_STIMULUS stubbed in Phase 5; HP→cash mechanic deferred to Phase 10 | D-22 from CONTEXT.md |
+| 2026-04-03 | Tile instruction shown on gameState (me.position + boardTilesData lookup) — no new server event needed | Plan 05-03 |
+| 2026-04-03 | Host board tooltips via pure CSS .tile[data-instruction]:hover::after — zero JS required | Plan 05-03 |
+| 2026-04-03 | boardTilesData captured on gameStarted in both initHostGame and initPlayerGame IIFEs | Plan 05-03 |
 
 ## Performance Metrics
 
@@ -98,3 +101,4 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 04-economic-tiles | 02 | 3min | 2 | 2 |
 | Phase 05-board-reset P01 | 2min | 2 tasks | 3 files |
 | Phase 05-board-reset P02 | 9min | 2 tasks | 4 files |
+| Phase 05-board-reset P03 | 2min | 2 tasks | 3 files |

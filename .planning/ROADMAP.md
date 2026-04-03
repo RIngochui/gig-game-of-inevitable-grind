@@ -13,7 +13,7 @@
 - [x] **Phase 2: Lobby & Room System** — Room creation/join, player connection, Success Formula submission (completed 2026-03-30)
 - [x] **Phase 3: Core Game Loop** — Dice rolling, token movement, turn progression (completed 2026-04-01)
 - [x] **Phase 4: Economic Tiles** — First tile pass; superseded by Phase 5 board reset (completed 2026-04-01)
-- [ ] **Phase 5: Board Reset** — Rebuild BOARD_TILES to final 40-tile design, add HP system, update win condition, stub all tile types
+- [x] **Phase 5: Board Reset** — Rebuild BOARD_TILES to final 40-tile design, add HP system, update win condition, stub all tile types (completed 2026-04-03)
 - [ ] **Phase 6: Hospital, Prison & Japan Trip** — HP→Hospital trigger, roll-to-leave, Doctor role, Prison escape, Japan Trip, Goomba Stomp
 - [ ] **Phase 7: Properties & Housing** — Apartment (Tile 6), House (Tile 25), buy/rent/prison-on-default mechanics
 - [ ] **Phase 8: University & Career Paths** — University path (7 degrees), 9 career paths with entry requirements and event tiles
@@ -102,12 +102,12 @@
 - [ ] Player screen displays money, happiness, fame, HP, degree, career history
 - [ ] Host screen displays board with tile labels and instructions
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Test infrastructure: write board-layout.test.ts (TDD Wave 0), delete tiles-econ.test.ts, update STARTING_MONEY assertions
 - [x] 05-02-PLAN.md — Server refactor: rebuild BOARD_TILES (40 tiles), update Player model (hp/salary), remove dead Phase 4 handlers, add stubs, checkWinCondition
-- [ ] 05-03-PLAN.md — UI update: player stat grid (2x3), active tile instructions, host board tile names + hover tooltips
+- [x] 05-03-PLAN.md — UI update: player stat grid (2x3), active tile instructions, host board tile names + hover tooltips
 
 ---
 
