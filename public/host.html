@@ -69,6 +69,40 @@
       transition: all 0.5s ease-out;
     }
     .player-dot.active { width: 16px; height: 16px; box-shadow: 0 0 6px currentColor; }
+    /* Tile name abbreviation */
+    .tile-abbr {
+      display: block;
+      font-size: 0.5rem;
+      font-family: monospace;
+      color: #aaa;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    /* Tooltip on hover — pure CSS, no JS needed */
+    .tile[data-instruction]:hover::after {
+      content: attr(data-instruction);
+      position: absolute;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16213e;
+      border: 1px solid #f0c040;
+      color: #eee;
+      font-size: 0.7rem;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: normal;
+      max-width: 160px;
+      min-width: 100px;
+      z-index: 20;
+      pointer-events: none;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
 
     /* History sidebar */
     #history-sidebar { width: 220px; flex-shrink: 0; }

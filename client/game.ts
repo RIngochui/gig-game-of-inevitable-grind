@@ -325,6 +325,24 @@ socket.on('ping', () => { socket.emit('pong'); });
   let turnHistoryItems: string[] = [];
   const MAX_HISTORY = 10;
 
+  // Board tile data (received on gameStarted) — used for abbreviations and tooltips
+  let boardTilesData: Array<{type: string; name: string; description: string}> = [];
+
+  // Map tile types to abbreviations (per UI-SPEC.md)
+  const TILE_ABBR: Record<string, string> = {
+    PAYDAY: 'PAYDAY', OPPORTUNITY_KNOCKS: 'OPP', PAY_TAXES: 'TAXES',
+    STUDENT_LOAN_REDIRECT: 'LOAN', MCDONALDS: "McDONALD'S", APARTMENT: 'APT',
+    SPORTS_BETTING: 'SPORTS', CIGARETTE_BREAK: 'CIGS', UNIVERSITY: 'UNI',
+    PRISON: 'PRISON', FINANCE_BRO: 'FINANCE', ART_GALLERY: 'ART',
+    SUPPLY_TEACHER: 'TEACHER', GYM_MEMBERSHIP: 'GYM', COP: 'COP',
+    LOTTERY: 'LOTTERY', JAPAN_TRIP: 'JAPAN', DEI_OFFICER: 'DEI',
+    REVOLUTION: 'REVOLTN', HOUSE: 'HOUSE', NEPOTISM: 'NEPT',
+    COVID_STIMULUS: 'COVID', TECH_BRO: 'TECH', HOSPITAL: 'HOSP',
+    RIGHT_WING_GRIFTER: 'GRIFTER', OZEMPIC: 'OZEMPIC',
+    STARVING_ARTIST: 'ARTIST', YACHT_HARBOR: 'YACHT',
+    INSTAGRAM_FOLLOWERS: 'INSTA', STREAMER: 'STREAMER',
+  };
+
   // ── Board initialization ───────────────────────────────────────────────────
 
   // Map tile index (0-39) to grid row/col on an 11×11 perimeter board
@@ -347,6 +365,17 @@ socket.on('ping', () => { socket.emit('pong'); });
       const { row, col } = getTileGridPos(i);
       div.style.gridColumn = String(col);
       div.style.gridRow = String(row);
+
+      // Inject tile abbreviation and tooltip data from boardTilesData
+      const tileData = boardTilesData[i];
+      const abbr = tileData ? (TILE_ABBR[tileData.type] || tileData.name.substring(0, 8)) : String(i);
+      const instruction = tileData?.description ?? '';
+      div.setAttribute('data-instruction', instruction);
+
+      const abbrEl = document.createElement('span');
+      abbrEl.className = 'tile-abbr';
+      abbrEl.textContent = abbr;
+      div.appendChild(abbrEl);
 
       const label = document.createElement('span');
       label.className = 'tile-label';
@@ -416,14 +445,16 @@ socket.on('ping', () => { socket.emit('pong'); });
 
   // ── Socket event handlers ──────────────────────────────────────────────────
 
-  socket.on('gameStarted', ({ turnOrder, currentPlayerSocketId, currentPlayerName, players }: {
+  socket.on('gameStarted', ({ turnOrder, currentPlayerSocketId, currentPlayerName, players, boardTiles }: {
     turnOrder: string[];
     currentPlayerSocketId: string;
     currentPlayerName: string;
     players: Array<{socketId: string; name: string; position: number}>;
+    boardTiles?: Array<{type: string; name: string; description: string}>;
   }) => {
     // initHostLobby's gameStarted handler already handles section visibility;
     // this IIFE focuses on board initialization
+    if (boardTiles) boardTilesData = boardTiles;
     currentPlayerId = currentPlayerSocketId;
     updateCurrentPlayerDisplay(currentPlayerName);
     initBoard(players);
@@ -521,12 +552,24 @@ socket.on('ping', () => { socket.emit('pong'); });
   const rollBtn         = document.getElementById('roll-btn') as HTMLButtonElement;
   const turnIndicator   = document.getElementById('turn-indicator') as HTMLElement;
   const drainNotif      = document.getElementById('drain-notification') as HTMLElement;
-  const moneyDisplay    = document.getElementById('money-display') as HTMLElement;
   const lastRollDisplay = document.getElementById('last-roll-display') as HTMLElement;
+
+  // Stat grid references
+  const statMoneyEl   = document.getElementById('stat-money') as HTMLElement;
+  const statFameEl    = document.getElementById('stat-fame') as HTMLElement;
+  const statHapEl     = document.getElementById('stat-happiness') as HTMLElement;
+  const statHpEl      = document.getElementById('stat-hp') as HTMLElement;
+  const statDegreeEl  = document.getElementById('stat-degree') as HTMLElement;
+  const statCareerEl  = document.getElementById('stat-career') as HTMLElement;
+  const tileInstrEl   = document.getElementById('active-tile-instruction') as HTMLElement;
+  const tileNameEl    = document.getElementById('tile-name-display') as HTMLElement;
+  const tileTextEl    = document.getElementById('tile-instruction-text') as HTMLElement;
 
   let mySocketId: string | null = null;
   let currentTurnPlayerId: string | null = null;
   let currentTurnPhase: string = 'WAITING_FOR_ROLL';
+  // Board tile data received on gameStarted — used to look up tile info by position
+  let boardTilesData: Array<{type: string; name: string; description: string}> = [];
 
   // If socket already connected (possible when initPlayerLobby ran first), grab id immediately
   if (socket.id) mySocketId = socket.id;
@@ -572,17 +615,20 @@ socket.on('ping', () => { socket.emit('pong'); });
     updateRollButton();
   });
 
-  socket.on('gameStarted', ({ currentPlayerSocketId, currentPlayerName }: { currentPlayerSocketId: string; currentPlayerName: string; turnOrder: string[]; players: unknown[] }) => {
+  socket.on('gameStarted', ({ currentPlayerSocketId, currentPlayerName, boardTiles }: { currentPlayerSocketId: string; currentPlayerName: string; turnOrder: string[]; players: unknown[]; boardTiles?: Array<{type: string; name: string; description: string}> }) => {
     const waitingSection = document.getElementById('waiting-section');
     const gameSection    = document.getElementById('game-section');
     if (waitingSection) waitingSection.style.display = 'none';
     if (gameSection)    gameSection.style.display    = 'block';
 
+    if (boardTiles) boardTilesData = boardTiles;
     currentTurnPlayerId = currentPlayerSocketId;
     currentTurnPhase    = 'WAITING_FOR_ROLL';
     updateRollButton();
     updateTurnIndicator(currentPlayerName);
-    if (moneyDisplay) moneyDisplay.textContent = '$50,000';
+    // Initialize stat grid with defaults (gameState broadcast will update with real values)
+    if (statMoneyEl) statMoneyEl.textContent = '$10,000';
+    if (statHpEl)    statHpEl.textContent    = '10';
   });
 
   socket.on('nextTurn', ({ currentPlayer, currentPlayerName }: { currentTurnIndex: number; currentPlayer: string; currentPlayerName: string; turnNumber: number }) => {
@@ -594,7 +640,7 @@ socket.on('ping', () => { socket.emit('pong'); });
 
   socket.on('drains-applied', ({ playerId, deductions, newMoney }: { playerId: string; deductions: Array<{type: string; amount: number}>; newMoney: number }) => {
     if (playerId === mySocketId) {
-      if (moneyDisplay) moneyDisplay.textContent = `$${newMoney.toLocaleString()}`;
+      if (statMoneyEl) statMoneyEl.textContent = `$${newMoney.toLocaleString()}`;
       if (deductions.length > 0) showDrainNotification(deductions);
     }
   });
@@ -619,7 +665,22 @@ socket.on('ping', () => { socket.emit('pong'); });
     if (state.turnPhase) currentTurnPhase = state.turnPhase;
     if (state.players && mySocketId && state.players[mySocketId]) {
       const me = state.players[mySocketId];
-      if (moneyDisplay) moneyDisplay.textContent = `$${me.money.toLocaleString()}`;
+      // Update stat grid
+      if (statMoneyEl)  statMoneyEl.textContent  = '$' + me.money.toLocaleString();
+      if (statFameEl)   statFameEl.textContent    = String(me.fame ?? 0);
+      if (statHapEl)    statHapEl.textContent     = String(me.happiness ?? 0);
+      if (statHpEl)     statHpEl.textContent      = String(me.hp ?? 10);
+      if (statDegreeEl) statDegreeEl.textContent  = me.degree ?? 'None';
+      if (statCareerEl) statCareerEl.textContent  = me.career ?? 'None';
+      // Update tile instruction from current position
+      if (me.position !== undefined && boardTilesData.length > 0) {
+        const tile = boardTilesData[me.position];
+        if (tile && tileInstrEl && tileNameEl && tileTextEl) {
+          tileInstrEl.style.display = 'block';
+          tileNameEl.textContent = 'Currently on: ' + tile.name;
+          tileTextEl.textContent = tile.description;
+        }
+      }
     }
     updateRollButton();
   });
