@@ -25,15 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-<<<<<<< Updated upstream
-**Current focus:** Phase 06 — hospital-prison-japan-trip (In Progress — Plan 01 complete)
+**Current focus:** Phase 06 — hospital-prison-japan-trip (In Progress — Plans 01-02 complete)
 
 ## Current Status
 
 **Phase:** 6
 **Current Plan:** 1
 **Stopped at:** Completed 06-hospital-prison-japan-trip 06-02-PLAN.md (Hospital/Prison/Japan/Goomba Stomp mechanics)
-**Next action:** Execute Plan 02 — implement Hospital, Prison, Japan Trip, Goomba Stomp server mechanics (Wave 1 — turn tests GREEN)
+**Next action:** Execute Plan 03 — add client-side event handlers for Phase 6 events in game.ts, recompile game.js
 
 ## Phase Progress
 
