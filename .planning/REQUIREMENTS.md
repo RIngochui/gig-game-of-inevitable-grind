@@ -69,17 +69,17 @@
 
 ### Prison
 
-- [ ] **PRISON-01**: Dedicated Prison tile on the board
-- [ ] **PRISON-02**: Imprisoned players skip movement turns but still have drains and passive income applied
-- [ ] **PRISON-03**: Imprisoned players can play Luck cards on their turn
-- [ ] **PRISON-04**: Escape option A: roll 1 die — roll a 1 to be freed, move to Prison Exit tile
-- [ ] **PRISON-05**: Escape option B: pay $5,000 fine, immediately move to Prison Exit tile
-- [ ] **PRISON-06**: Host screen shows prison icon next to imprisoned players and turns served
+- [x] **PRISON-01**: Dedicated Prison tile on the board
+- [x] **PRISON-02**: Imprisoned players skip movement turns but still have drains and passive income applied
+- [x] **PRISON-03**: Imprisoned players can play Luck cards on their turn
+- [x] **PRISON-04**: Escape option A: roll 1 die — roll a 1 to be freed, move to Prison Exit tile
+- [x] **PRISON-05**: Escape option B: pay $5,000 fine, immediately move to Prison Exit tile
+- [x] **PRISON-06**: Host screen shows prison icon next to imprisoned players and turns served
 
 ### Goomba Stomp
 
-- [ ] **STOMP-01**: If a player ends their move on an occupied tile, all players already there are sent to Prison immediately
-- [ ] **STOMP-02**: Stomping player stays on the tile; applies on main loop and inside all career/college paths
+- [x] **STOMP-01**: If a player ends their move on an occupied tile, all players already there are sent to Prison immediately
+- [x] **STOMP-02**: Stomping player stays on the tile; applies on main loop and inside all career/college paths
 
 ### College Path
 

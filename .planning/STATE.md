@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2
+current_plan: 3
 status: Executing Phase 05
-stopped_at: "Completed 05-board-reset 05-03-PLAN.md (UI: stat grid, tile instruction panel, host board tooltips)"
-last_updated: "2026-04-03T03:08:53.766Z"
+stopped_at: Completed 06-hospital-prison-japan-trip 06-01-PLAN.md (Wave 0 test scaffolding)
+last_updated: "2026-04-03T05:36:09.224Z"
 progress:
   total_phases: 12
   completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_plans: 21
+  completed_plans: 19
+  percent: 90
 ---
 
 # Project State: Modern Careers
 
-**Last updated:** 2026-04-03 after completing Phase 5 Plan 03 (UI: player stat grid, tile instruction panel, host board tile abbreviations and CSS hover tooltips)
+**Last updated:** 2026-04-03 after completing Phase 6 Plan 01 (Wave 0 test scaffolding: hospital, prison, japan-trip, goomba-stomp, doctor-role)
 
-**Progress:** [██████████] 100%
+**Progress:** [█████████░] 90%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-**Current focus:** Phase 05 — board-reset (COMPLETE)
+**Current focus:** Phase 06 — hospital-prison-japan-trip (In Progress — Plan 01 complete)
 
 ## Current Status
 
-**Phase:** 5
-**Current Plan:** 3
-**Stopped at:** Completed 05-board-reset 05-03-PLAN.md (UI: stat grid, tile instruction panel, host board tooltips)
-**Next action:** Phase 5 complete — proceed to Phase 6 (Properties, Prison & Goomba Stomp)
+**Phase:** 6
+**Current Plan:** 1
+**Stopped at:** Completed 06-hospital-prison-japan-trip 06-01-PLAN.md (Wave 0 test scaffolding)
+**Next action:** Execute Plan 02 — implement Hospital, Prison, Japan Trip, Goomba Stomp server mechanics (Wave 1 — turn tests GREEN)
 
 ## Phase Progress
 
@@ -84,6 +84,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-04-03 | Tile instruction shown on gameState (me.position + boardTilesData lookup) — no new server event needed | Plan 05-03 |
 | 2026-04-03 | Host board tooltips via pure CSS .tile[data-instruction]:hover::after — zero JS required | Plan 05-03 |
 | 2026-04-03 | boardTilesData captured on gameStarted in both initHostGame and initPlayerGame IIFEs | Plan 05-03 |
+| 2026-04-03 | require('../server').fn() pattern for Wave 0 RED tests — throws 'not a function' until Plan 02 exports | Plan 06-01 |
+| 2026-04-03 | 2d6 >= 9 threshold for Japan Trip forced-leave (per RESEARCH.md recommendation) | Plan 06-01 |
+| 2026-04-03 | Prison bail = $5,000 flat (per RESEARCH.md recommendation) | Plan 06-01 |
+| 2026-04-03 | PRISON-01 tile sanity check stays GREEN in Wave 0 (existing board already has PRISON at tile 10) | Plan 06-01 |
 
 ## Performance Metrics
 
@@ -102,3 +106,4 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | Phase 05-board-reset P01 | 2min | 2 tasks | 3 files |
 | Phase 05-board-reset P02 | 9min | 2 tasks | 4 files |
 | Phase 05-board-reset P03 | 2min | 2 tasks | 3 files |
+| Phase 06-hospital-prison-japan-trip P01 | 5min | 2 tasks | 5 files |
