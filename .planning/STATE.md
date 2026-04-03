@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3
-status: Executing Phase 05
+current_plan: 1
+status: Executing Phase 06
 stopped_at: Completed 06-hospital-prison-japan-trip 06-01-PLAN.md (Wave 0 test scaffolding)
 last_updated: "2026-04-03T05:36:09.224Z"
 progress:
@@ -25,6 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
+<<<<<<< Updated upstream
 **Current focus:** Phase 06 — hospital-prison-japan-trip (In Progress — Plan 01 complete)
 
 ## Current Status
