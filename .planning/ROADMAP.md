@@ -14,8 +14,8 @@
 - [x] **Phase 3: Core Game Loop** — Dice rolling, token movement, turn progression (completed 2026-04-01)
 - [x] **Phase 4: Economic Tiles** — First tile pass; superseded by Phase 5 board reset (completed 2026-04-01)
 - [x] **Phase 5: Board Reset** — Rebuild BOARD_TILES to final 40-tile design, add HP system, update win condition, stub all tile types (completed 2026-04-03)
-- [x] **Phase 6: Hospital, Prison & Japan Trip** — HP→Hospital trigger, roll-to-leave, Doctor role, Prison escape, Japan Trip, Goomba Stomp (completed 2026-04-03)
-- [ ] **Phase 7: Properties & Housing** — Apartment (Tile 6), House (Tile 25), buy/rent/prison-on-default mechanics
+- [ ] **Phase 6: Hospital, Prison & Japan Trip** — HP→Hospital trigger, roll-to-leave, Doctor role, Prison escape, Japan Trip, Goomba Stomp
+- [ ] **Phase 7: Properties & Housing** — Apartment (Tile 6), House (Tile 25), buy/rent/prison-on-default mechanics (Plan 01 RED tests complete)
 - [ ] **Phase 8: University & Career Paths** — University path (7 degrees), 9 career paths with entry requirements and event tiles
 - [ ] **Phase 9: Opportunity Knocks** — Card deck system, draw mechanics, card effects, hand management
 - [ ] **Phase 10: Economy & Life Tiles** — All remaining tiles: Gym, Lottery, COVID Stimulus, Revolution, Ozempic, Yacht, Instagram, Art Gallery, Cigarette Break, Pay Taxes, Sports Betting, Nepotism, Streamer entry
@@ -143,38 +143,34 @@ Plans:
 - [x] 06-01-PLAN.md — TDD Wave 0: write failing tests for hospital, prison, japan-trip, goomba-stomp, doctor-role (all 5 test suites red)
 - [x] 06-02-PLAN.md — Server mechanics: Player interface extension (inHospital, inJapan, isDoctor, isCop), Hospital/Prison/Japan turn-flow interception, Goomba Stomp occupancy routing, card-play guards
 - [x] 06-03-PLAN.md — Client UI: socket event handlers for all Phase 6 events in initPlayerGame and initHostGame IIFEs, recompile game.js
-- [x] 06-04-PLAN.md — Gap closure: prisonTurns counter (PRISON-06), REQUIREMENTS.md PRISON-04/STOMP-01 text updates
+- [ ] 06-04-PLAN.md — Gap closure: prisonTurns counter (PRISON-06), REQUIREMENTS.md PRISON-04/STOMP-01 text updates
 
 ---
 
 ### Phase 7: Properties & Housing
 
-**Goal:** Apartment (Tile 6) and House (Tile 25) ownership with rent collection and property-default-to-prison.
+**Goal:** Apartment (Tile 6) and House (Tile 25) ownership with rent collection and prison-on-default.
 
 **Key deliverables:**
-1. Apartment (Tile 6): buy for 50,000 via player choice prompt; rent = 25% of visitor's Salary paid to owner
-2. House (Tile 25): buy for 100,000 via player choice prompt; rent = 50% of visitor's Salary paid to owner
-3. Can't-pay mechanic: give all cash to owner → sent to Prison (independent property mechanic, not shared with Phase 6 prison code)
-4. Host board tile label updates to "[PlayerName]'s Apartment" / "[PlayerName]'s House" on purchase (no landlord hat)
+1. Apartment: buy for 50,000; rent = 25% Salary; can't pay → give all cash + go to Prison
+2. House: buy for 100,000; rent = 50% Salary; can't pay → give all cash + go to Prison
+3. Landlord hat character layer on owner
 
 **Requirements:** PROP-01..04
 
 ### Success Criteria
 
-- [ ] Apartment buyable for 50,000 when unowned (player choice prompt)
-- [ ] House buyable for 100,000 when unowned (player choice prompt)
-- [ ] Owner landing on own property: no charge, advance turn
-- [ ] Rent deducted correctly from visitor's Salary (25% / 50%), added to owner
-- [ ] Visitor who can't afford rent: all cash → owner, then sent to Prison via independent property mechanic
-- [ ] Only one owner per property; ownership persists through game
-- [ ] Host board tile label shows "[PlayerName]'s Apartment" / "[PlayerName]'s House" after purchase
+- [ ] Apartment buyable for 50,000 when unowned
+- [ ] House buyable for 100,000 when unowned
+- [ ] Rent deducted correctly from visitor, added to owner
+- [ ] Visitor who can't pay: all cash → owner, then sent to Prison
+- [ ] Only one owner per property; persists through game
+- [ ] Landlord hat visible on owner's character
 
-**Plans:** 3 plans
+**Plans:** 1/1 plans complete (RED phase only)
 
 Plans:
-- [ ] 07-01-PLAN.md — TDD Wave 0: write failing tests for property buy, rent, can't-pay default, owner self-land, pass on buying (8 tests, all RED)
-- [ ] 07-02-PLAN.md — Server implementation: GameRoom.properties field, WAITING_FOR_PROPERTY_DECISION turn phase, handlePropertyTile, handleBuyProperty, buy-property socket handler
-- [ ] 07-03-PLAN.md — Client UI: property-buy-prompt handler (buy/pass buttons), property-purchased (tile label update), property-rent-paid, property-default notifications
+- [x] 07-01-PLAN.md — TDD Wave 0: write 8 failing tests for property buy/rent/default mechanics
 
 ---
 
@@ -328,8 +324,8 @@ Plans:
 | 3. Core Game Loop | Complete | 2026-04-01 |
 | 4. Economic Tiles (superseded) | Complete | 2026-04-01 |
 | 5. Board Reset | Complete | 2026-04-03 |
-| 6. Hospital, Prison & Japan Trip | Complete | 2026-04-03 |
-| 7. Properties & Housing | In progress | — |
+| 6. Hospital, Prison & Japan Trip | Not started | — |
+| 7. Properties & Housing | In Progress (Plan 01 RED) | — |
 | 8. University & Career Paths | Not started | — |
 | 9. Opportunity Knocks | Not started | — |
 | 10. Economy & Life Tiles | Not started | — |
@@ -351,4 +347,3 @@ Plans:
 *Roadmap created: 2026-03-29*
 *Redesigned: 2026-04-02 — full board reset based on finalized game design doc*
 *Phase 6 planned: 2026-04-03 — Hospital, Prison, Japan Trip, Goomba Stomp, Doctor role*
-*Phase 7 planned: 2026-04-03 — Properties & Housing (3 plans, 3 waves)*
