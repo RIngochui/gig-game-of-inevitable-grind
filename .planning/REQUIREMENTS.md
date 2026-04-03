@@ -66,7 +66,7 @@
 - [x] **PROP-01**: **Apartment (Tile 6)** — buy for 50,000 (player choice prompt when landing on unowned tile); rent = 25% of visitor's Salary paid to owner; only one owner per property; owner landing on own tile pays nothing
 - [x] **PROP-02**: **House (Tile 25)** — buy for 100,000 (player choice prompt when landing on unowned tile); rent = 50% of visitor's Salary paid to owner; only one owner per property; owner landing on own tile pays nothing
 - [x] **PROP-03**: Visitor who can't afford rent: give all cash to owner, then sent to Prison (independent property-default mechanic — not shared with PRISON path)
-- [ ] **PROP-04**: Host board tile label updates to "[PlayerName]'s Apartment" / "[PlayerName]'s House" upon purchase; reverts to default name if ownership mechanic ever clears (future-proofing)
+- [x] **PROP-04**: Host board tile label updates to "[PlayerName]'s Apartment" / "[PlayerName]'s House" upon purchase; reverts to default name if ownership mechanic ever clears (future-proofing)
 
 ### Prison
 
