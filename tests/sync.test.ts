@@ -60,12 +60,10 @@ describe('getFullState', () => {
     expect(state.players['host-1'].successFormula).toEqual({ money: 20, fame: 20, happiness: 20 });
   });
 
-  test('cryptoInvestments serialised as plain object', () => {
+  test('lotteryPool serialised as number in sharedResources', () => {
     const room = makeRoom();
-    room.sharedResources.cryptoInvestments.set('host-1', 5000);
     const state = getFullState(room) as Record<string, Record<string, unknown>>;
-    expect(state.sharedResources.cryptoInvestments).not.toBeInstanceOf(Map);
-    expect((state.sharedResources.cryptoInvestments as Record<string, number>)['host-1']).toBe(5000);
+    expect(typeof state.sharedResources.lotteryPool).toBe('number');
   });
 
   test('includes timestamp', () => {

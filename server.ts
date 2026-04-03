@@ -23,6 +23,8 @@ export interface Player {
   money: number;
   fame: number;
   happiness: number;
+  hp: number;
+  salary: number;
   // Board position
   position: number;
   // Status flags
@@ -37,8 +39,6 @@ export interface Player {
   degree: string | null;         // null | 'compSci' | 'business' | 'healthSciences' | 'teaching'
   career: string | null;         // null | career path name
   hasStudentLoans: boolean;
-  hasPonziFlag: boolean;
-  ponziStolenFrom: Record<string, number>;  // victimId → amountStolen (for exact repayment)
   // Character portrait overlays
   hasWeddingRing: boolean;
   hasSportsCar: boolean;
@@ -55,8 +55,7 @@ export interface Player {
 }
 
 export interface SharedResources {
-  investmentPool: number;
-  cryptoInvestments: Map<string, number>;
+  lotteryPool: number;
 }
 
 export interface GameRoom {
@@ -167,53 +166,54 @@ const TURN_PHASES = {
   WAITING_FOR_NEXT_TURN: 'WAITING_FOR_NEXT_TURN'
 } as const;
 
-const STARTING_MONEY = 50000;
+const STARTING_MONEY = 10000;
+export const STARTING_HP = 10;
 
 // ── Board definition ───────────────────────────────────────────────────────
 
 export const BOARD_SIZE = 40;
 
-export const BOARD_TILES: Array<{ type: string; name: string; careerName?: string }> = [
-  { type: 'PAYDAY',          name: 'Payday' },                                             // 0  — corner
-  { type: 'CAREER_ENTRANCE', name: 'Tech Bro',             careerName: 'techBro' },        // 1
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'techBro' },        // 2
-  { type: 'SPORTS_BETTING',  name: 'Sports Betting' },                                     // 3
-  { type: 'CAREER_ENTRANCE', name: 'Finance Bro',          careerName: 'financeBro' },     // 4
-  { type: 'APARTMENT',       name: 'Apartment' },                                          // 5
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'financeBro' },     // 6
-  { type: 'INVESTMENT_POOL', name: 'Investment Pool' },                                    // 7
-  { type: 'CAREER_ENTRANCE', name: 'Healthcare Hero',      careerName: 'healthcare' },     // 8
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'healthcare' },     // 9
-  { type: 'PRISON',          name: 'Prison' },                                             // 10 — corner
-  { type: 'CAREER_ENTRANCE', name: 'Disillusioned Academic', careerName: 'academic' },    // 11
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'academic' },       // 12
-  { type: 'COVID_STIMULUS',  name: 'COVID Stimulus Check' },                               // 13
-  { type: 'CAREER_ENTRANCE', name: 'Streamer',             careerName: 'streamer' },       // 14
-  { type: 'TAX_AUDIT',       name: 'Tax Audit' },                                          // 15
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'streamer' },       // 16
-  { type: 'SCRATCH_TICKET',  name: 'Scratch Ticket' },                                    // 17
-  { type: 'CAREER_ENTRANCE', name: "McDonald's Employee",  careerName: 'mcdonalds' },      // 18
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'mcdonalds' },      // 19
-  { type: 'PARK_BENCH',      name: 'Park Bench' },                                         // 20 — corner
-  { type: 'CAREER_ENTRANCE', name: 'Right-Wing Grifter',   careerName: 'grifter' },        // 21
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'grifter' },        // 22
-  { type: 'CRYPTO',          name: 'Crypto' },                                             // 23
-  { type: 'CAREER_ENTRANCE', name: 'Cop',                  careerName: 'cop' },            // 24
-  { type: 'HOUSE',           name: 'House' },                                              // 25
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'cop' },            // 26
-  { type: 'NEPOTISM',        name: 'Nepotism' },                                           // 27
-  { type: 'CAREER_ENTRANCE', name: 'Artist',               careerName: 'artist' },         // 28
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'artist' },         // 29
-  { type: 'HOSPITAL',        name: 'Hospital' },                                           // 30 — corner
-  { type: 'CAREER_ENTRANCE', name: 'D&I Officer',          careerName: 'diOfficer' },      // 31
-  { type: 'OPPORTUNITY',     name: 'Opportunity',          careerName: 'diOfficer' },      // 32
-  { type: 'UNION_STRIKE',    name: 'Union Strike' },                                       // 33
-  { type: 'PONZI_SCHEME',    name: 'Ponzi Scheme' },                                      // 34
-  { type: 'STUDENT_LOAN_PAYMENT', name: 'Student Loan Payment' },                         // 35
-  { type: 'TBD',             name: 'TBD...' },                                             // 36
-  { type: 'TBD',             name: 'TBD...' },                                             // 37
-  { type: 'TBD',             name: 'TBD...' },                                             // 38
-  { type: 'TBD',             name: 'TBD...' },                                             // 39
+export const BOARD_TILES: Array<{ type: string; name: string; description: string }> = [
+  { type: 'PAYDAY',                name: 'Payday',              description: 'Pass: +Salary. Land exactly: +2× Salary.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'PAY_TAXES',             name: 'Pay Taxes',           description: 'Salary ≤30k: pay 0. ≤70k: pay 50% salary. ≥70k: pay 90% salary.' },
+  { type: 'STUDENT_LOAN_REDIRECT', name: 'Student Loan Payment',description: 'Move to University (Tile 9). Entry fee waived. Lose 15,000.' },
+  { type: 'MCDONALDS',             name: "McDonald's",          description: 'Career path entry. No degree required. Low salary, flavor tiles.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'APARTMENT',             name: 'Apartment',           description: 'Buy for 50,000 if unowned. Rent: pay 25% Salary to owner.' },
+  { type: 'SPORTS_BETTING',        name: 'Sports Betting',      description: 'Buy parlay for 10,000. Roll 1d6: 1 wins 60,000; else lose stake.' },
+  { type: 'CIGARETTE_BREAK',       name: 'Cigarette Break',     description: 'Roll 1d6=X. Gain X Happiness, lose X HP.' },
+  { type: 'UNIVERSITY',            name: 'University',          description: 'Pay 10,000 to enter (waived from Tile 3). Choose degree. Max 1 per game.' },
+  { type: 'PRISON',                name: 'Prison',              description: 'Escape: roll 9, 11, or 12, OR pay bail. No movement or Salary.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'FINANCE_BRO',           name: 'Finance Bro',         description: 'Career path entry. Requires Economics/Business degree, OR pay 10,000, OR Nepotism.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'ART_GALLERY',           name: 'Art Gallery',         description: 'Buy NFT for 20,000 each. Roll 1d6 → gain Fame. Payment → Artist or Banker.' },
+  { type: 'SUPPLY_TEACHER',        name: 'Supply Teacher',      description: 'Career path entry. Requires Teaching degree, OR pay 10,000, OR Nepotism.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'GYM_MEMBERSHIP',        name: 'Gym Membership',      description: 'Sign up for 10,000. Each pass as member: pay 5,000, +1 HP, +1 Happiness.' },
+  { type: 'COP',                   name: 'Cop',                 description: 'Career path entry. Wait 1 turn + pay 15,000, OR Nepotism.' },
+  { type: 'LOTTERY',               name: 'Lottery',             description: 'Pool starts at 50,000. Roll 2d6 (costs 10,000/roll, max 3). Pair = win pool.' },
+  { type: 'JAPAN_TRIP',            name: 'Japan Trip',          description: '+1 Happiness on land. Each turn staying: +2 Happiness, pay Salary/5. Roll >8 = must leave.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'DEI_OFFICER',           name: 'DEI Officer',         description: 'Career path entry. Requires Gender Studies, OR lose 20 Fame, OR Nepotism.' },
+  { type: 'REVOLUTION',            name: 'Revolution',          description: 'Sum all Cash. Split evenly. Leftover → Banker.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'HOUSE',                 name: 'House',               description: 'Buy for 100,000 if unowned. Rent: pay 50% Salary to owner.' },
+  { type: 'NEPOTISM',              name: 'Nepotism',            description: 'Choose another player + a career you completed. They enter that path free. You receive path bonus.' },
+  { type: 'COVID_STIMULUS',        name: 'COVID Stimulus',      description: 'Trade HP for cash: 10,000 per HP.' },
+  { type: 'TECH_BRO',              name: 'Tech Bro',            description: 'Career path entry. Requires Computer Science, OR pay 20,000, OR Nepotism.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'HOSPITAL',              name: 'Hospital',            description: 'Stuck until roll ≤5 OR pay ½ Salary. On leaving: +5 HP.' },
+  { type: 'RIGHT_WING_GRIFTER',    name: 'Right-Wing Grifter',  description: 'Career path entry. Requires Political Science, OR lose 25 Happiness, OR Nepotism.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'OZEMPIC',               name: 'Ozempic',             description: 'Buy up to 3 treatments. Each: pay 10,000, gain +2 HP.' },
+  { type: 'STARVING_ARTIST',       name: 'Starving Artist',     description: 'Career path entry. Requires Art degree, OR pay 25,000, OR Nepotism.' },
+  { type: 'YACHT_HARBOR',          name: 'Yacht Harbor',        description: 'Pay 20,000 → +4 Happiness. Pay 80,000 → +8. Pay 160,000 → +12.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
+  { type: 'INSTAGRAM_FOLLOWERS',   name: 'Instagram Followers', description: 'Pay 20,000 → +4 Fame. Pay 80,000 → +10. Pay 160,000 → +16.' },
+  { type: 'STREAMER',              name: 'Streamer',            description: 'Career path entry. Roll a 1 (costs 10,000/attempt, max 3) OR Nepotism.' },
+  { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
 ];
 
 // ── Player factory ─────────────────────────────────────────────────────────
@@ -226,6 +226,8 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     money: STARTING_MONEY,
     fame: 0,
     happiness: 0,
+    hp: STARTING_HP,
+    salary: 10000,
     position: 0,
     inPrison: false,
     skipNextTurn: false,
@@ -237,8 +239,6 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     degree: null,
     career: null,
     hasStudentLoans: false,
-    hasPonziFlag: false,
-    ponziStolenFrom: {},
     hasWeddingRing: false,
     hasSportsCar: false,
     hasLandlordHat: false,
@@ -264,8 +264,7 @@ function createGameRoom(roomCode: string, hostSocketId: string): GameRoom {
     turnPhase: TURN_PHASES.WAITING_FOR_ROLL,
     board: [],
     sharedResources: {
-      investmentPool: 0,
-      cryptoInvestments: new Map<string, number>()
+      lotteryPool: 50000,
     },
     cleanupTimer: null,
     turnHistory: [],
@@ -372,6 +371,8 @@ function getFullState(room: GameRoom, requestingSocketId: string | null = null):
       money: player.money,
       fame: player.fame,
       happiness: player.happiness,
+      hp: player.hp,
+      salary: player.salary,
       position: player.position,
       inPrison: player.inPrison,
       skipNextTurn: player.skipNextTurn,
@@ -404,12 +405,30 @@ function getFullState(room: GameRoom, requestingSocketId: string | null = null):
     gamePhase: room.gamePhase,
     turnPhase: room.turnPhase,
     sharedResources: {
-      investmentPool: room.sharedResources.investmentPool,
-      cryptoInvestments: Object.fromEntries(room.sharedResources.cryptoInvestments)
+      lotteryPool: room.sharedResources.lotteryPool,
     },
     turnHistory: room.turnHistory,
     timestamp: Date.now()
   };
+}
+
+// ── Win condition check ────────────────────────────────────────────────────
+
+export function checkWinCondition(player: Player, room: GameRoom): boolean {
+  if (!player.successFormula) return false;
+  const lifeTotal = player.fame + player.happiness + Math.floor(player.money / 10000);
+  if (lifeTotal < 60) return false;
+
+  // Check formula satisfaction
+  // successFormula.money is a point allocation (0-60), represents MoneyPoints needed
+  // successFormula.fame is Fame points needed
+  // successFormula.happiness is Happiness points needed
+  const moneyPoints = Math.floor(player.money / 10000);
+  const formulaMoneyOk = moneyPoints >= player.successFormula.money;
+  const formulaFameOk = player.fame >= player.successFormula.fame;
+  const formulaHappinessOk = player.happiness >= player.successFormula.happiness;
+
+  return formulaMoneyOk && formulaFameOk && formulaHappinessOk;
 }
 
 // ── Heartbeat state ────────────────────────────────────────────────────────
@@ -506,35 +525,6 @@ function advanceTurn(
   });
 }
 
-function checkAndRepayPonzi(room: GameRoom, roomCode: string): void {
-  const ponziPlayer = Array.from(room.players.values()).find(p => p.hasPonziFlag);
-  if (!ponziPlayer) return;
-
-  const afterBalances: { name: string; newMoney: number }[] = [];
-  let totalRepaid = 0;
-
-  for (const [victimId, amountStolen] of Object.entries(ponziPlayer.ponziStolenFrom)) {
-    const victim = room.players.get(victimId);
-    if (!victim) continue;
-    const repayAmount = amountStolen * 2;
-    victim.money += repayAmount;
-    ponziPlayer.money -= repayAmount;
-    totalRepaid += repayAmount;
-    afterBalances.push({ name: victim.name, newMoney: victim.money });
-  }
-
-  afterBalances.push({ name: ponziPlayer.name, newMoney: ponziPlayer.money });
-  ponziPlayer.hasPonziFlag = false;
-  ponziPlayer.ponziStolenFrom = {};
-
-  io.to(roomCode).emit('tile-ponzi-repaid', {
-    ponziPlayerName: ponziPlayer.name,
-    totalRepaid,
-    afterBalances
-  });
-
-  console.log(`[ponzi-repaid] ${ponziPlayer.name} repaid $${totalRepaid} total to victims in ${roomCode}`);
-}
 
 function dispatchTile(
   room: GameRoom,
@@ -550,27 +540,24 @@ function dispatchTile(
   const player = room.players.get(playerId);
   if (!player) return;
 
-  // Check and trigger Ponzi repayment on ANY tile landing (not just Ponzi tile)
-  checkAndRepayPonzi(room, roomCode);
-
   room.turnPhase = TURN_PHASES.TILE_RESOLVING;
   console.log(`[tile] ${player.name} landed on ${tileType} (${tileName}) at index ${tileIndex}`);
 
   switch (tileType) {
     case 'SPORTS_BETTING': {
-      // ECON-01: roll=1 win 6×, else lose entire bet (floor 0)
-      const sbBet = player.money;
+      // Phase 5: buy parlay for 10,000. Roll 1d6: 1 → gain 60,000; else → lose 10,000 stake
+      const sbStake = 10000;
+      player.money -= sbStake; // pay stake (negative allowed)
       const sbRoll = Math.floor(Math.random() * 6) + 1;
       if (sbRoll === 1) {
-        player.money = player.money + sbBet * 6;
-      } else {
-        player.money = Math.max(0, player.money - sbBet);
+        player.money += 60000; // win 6× = 60,000
       }
       io.to(roomCode).emit('tile-sports-betting', {
         playerName: player.name,
-        betAmount: sbBet,
+        stake: sbStake,
         roll: sbRoll,
         won: sbRoll === 1,
+        winAmount: sbRoll === 1 ? 60000 : 0,
         newMoney: player.money
       });
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'SPORTS_BETTING');
@@ -578,137 +565,10 @@ function dispatchTile(
     }
 
     case 'COVID_STIMULUS': {
-      // ECON-03: all players in room receive $1,400 flat, no interaction required
-      const awardAmount = 1400;
-      const playerBalances: { name: string; newMoney: number }[] = [];
-      for (const [, p] of room.players) {
-        p.money += awardAmount;
-        playerBalances.push({ name: p.name, newMoney: p.money });
-      }
-      io.to(roomCode).emit('tile-covid-stimulus', {
-        awardAmount,
-        playerBalances
-      });
+      // Phase 5 stub: mechanic changes to HP→cash trade in Phase 10
+      // Full mechanic: player trades HP for 10,000 per HP spent
+      console.log(`[tile] ${player.name} landed on COVID Stimulus (stub)`);
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'COVID_STIMULUS');
-      break;
-    }
-
-    case 'INVESTMENT_POOL': {
-      // ECON-02: roll 1d6; roll=1 wins entire pool (reset to $0), else lose $500 added to pool
-      // Negative money allowed (pool loss can exceed current balance — adds drama per spec)
-      const ipRoll = Math.floor(Math.random() * 6) + 1;
-      let ipWon = false;
-      let ipWinnings = 0;
-
-      if (ipRoll === 1) {
-        ipWon = true;
-        ipWinnings = room.sharedResources.investmentPool;
-        player.money += ipWinnings;
-        room.sharedResources.investmentPool = 0;
-      } else {
-        player.money -= 500; // negative allowed
-        room.sharedResources.investmentPool += 500;
-      }
-
-      io.to(roomCode).emit('tile-investment-pool', {
-        playerName: player.name,
-        roll: ipRoll,
-        won: ipWon,
-        winnings: ipWon ? ipWinnings : 0,
-        poolTotal: room.sharedResources.investmentPool,
-        newMoney: player.money
-      });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'INVESTMENT_POOL');
-      break;
-    }
-
-    case 'CRYPTO': {
-      // ECON-06: first landing = invest (0 to current money); second landing = payout based on roll
-      // Investment tracked per-player in room.sharedResources.cryptoInvestments
-      const existingInvestment = room.sharedResources.cryptoInvestments.get(playerId) ?? 0;
-
-      if (existingInvestment === 0) {
-        // First landing: invest current money (all-in by default; client can choose in future)
-        const cryptoInvest = player.money;
-        player.money -= cryptoInvest; // money temporarily zero (will get back on second landing)
-        room.sharedResources.cryptoInvestments.set(playerId, cryptoInvest);
-
-        io.to(roomCode).emit('tile-crypto-invested', {
-          playerName: player.name,
-          investAmount: cryptoInvest,
-          newMoney: player.money
-        });
-      } else {
-        // Second landing: payout based on 1d6
-        const cryptoRoll = Math.floor(Math.random() * 6) + 1;
-        let cryptoPayout = 0;
-
-        if (cryptoRoll === 1 || cryptoRoll === 2) {
-          cryptoPayout = existingInvestment * 3; // 3× return
-        } else if (cryptoRoll === 3 || cryptoRoll === 4) {
-          cryptoPayout = existingInvestment; // break even
-        } else {
-          cryptoPayout = 0; // 5-6: worthless
-        }
-
-        player.money += cryptoPayout;
-        room.sharedResources.cryptoInvestments.set(playerId, 0); // ALWAYS reset
-
-        io.to(roomCode).emit('tile-crypto-payout', {
-          playerName: player.name,
-          originalInvestment: existingInvestment,
-          roll: cryptoRoll,
-          payout: cryptoPayout,
-          newMoney: player.money
-        });
-      }
-
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'CRYPTO');
-      break;
-    }
-
-    case 'TAX_AUDIT': {
-      // ECON-04: roll 1d6, lose (result × 5)% of current money (floor at 0, round down)
-      const taRoll = Math.floor(Math.random() * 6) + 1;
-      const deductionPercent = taRoll * 5;
-      const deductionAmount = Math.floor(player.money * deductionPercent / 100);
-      player.money = Math.max(0, player.money - deductionAmount);
-      io.to(roomCode).emit('tile-tax-audit', {
-        playerName: player.name,
-        roll: taRoll,
-        deductionPercent,
-        deductionAmount,
-        newMoney: player.money
-      });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'TAX_AUDIT');
-      break;
-    }
-
-    case 'SCRATCH_TICKET': {
-      // ECON-05: pay $200 (can go negative), roll 1d6
-      // roll=1: win $2,000 (net +$1,800) / roll=2-3: break even (net -$200) / roll=4-6: lose $200 more (net -$400)
-      // NOTE: money is allowed to go negative here — do NOT use Math.max
-      player.money -= 200; // pay entry cost; negative allowed
-      const stRoll = Math.floor(Math.random() * 6) + 1;
-      let stNetChange = -200; // base: paid $200
-      if (stRoll === 1) {
-        player.money += 2000;
-        stNetChange = 1800;
-      } else if (stRoll === 2 || stRoll === 3) {
-        // break even: no additional change (already paid $200)
-        stNetChange = -200;
-      } else {
-        // roll=4-6: lose $200 more
-        player.money -= 200;
-        stNetChange = -400;
-      }
-      io.to(roomCode).emit('tile-scratch-ticket', {
-        playerName: player.name,
-        roll: stRoll,
-        netChange: stNetChange,
-        newMoney: player.money
-      });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'SCRATCH_TICKET');
       break;
     }
 
@@ -727,67 +587,40 @@ function dispatchTile(
       break;
     }
 
-    case 'UNION_STRIKE': {
-      // ECON-08: average all players' money, redistribute equally
-      const totalMoney = Array.from(room.players.values()).reduce((sum, p) => sum + p.money, 0);
-      const playerCount = room.players.size;
-      const equalShare = Math.floor(totalMoney / playerCount);
-      const afterBalances: { name: string; newMoney: number }[] = [];
-      for (const [, p] of room.players) {
-        p.money = equalShare;
-        afterBalances.push({ name: p.name, newMoney: p.money });
-      }
-      io.to(roomCode).emit('tile-union-strike', { playerCount, totalMoney, equalShare, afterBalances });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'UNION_STRIKE');
-      break;
-    }
-
-    case 'PONZI_SCHEME': {
-      // ECON-09: steal min($1,000, victim.money) from each other player; flag for repayment
-      const stealPerPlayer = 1000;
-      const stealFrom: { playerName: string; amount: number }[] = [];
-      let totalStolen = 0;
-      const stolenRecord: Record<string, number> = {};
-      for (const [pid, p] of room.players) {
-        if (pid !== playerId) {
-          const stolen = Math.min(stealPerPlayer, Math.max(0, p.money));
-          if (stolen > 0) {
-            p.money -= stolen;
-            player.money += stolen;
-            totalStolen += stolen;
-            stealFrom.push({ playerName: p.name, amount: stolen });
-          }
-          stolenRecord[pid] = stolen;
-        }
-      }
-      player.hasPonziFlag = true;
-      player.ponziStolenFrom = stolenRecord;
-      io.to(roomCode).emit('tile-ponzi-executed', { playerName: player.name, stealFrom, totalStolen, newMoney: player.money });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PONZI_SCHEME');
-      break;
-    }
-
-    case 'STUDENT_LOAN_PAYMENT': {
-      // ECON-10: deduct $1,000 every landing if player has student loans; negative allowed
-      const hasLoans = player.hasStudentLoans;
-      if (hasLoans) player.money -= 1000;
-      io.to(roomCode).emit('tile-student-loan', { playerName: player.name, hadLoans: hasLoans, deduction: hasLoans ? 1000 : 0, newMoney: player.money });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'STUDENT_LOAN_PAYMENT');
+    case 'OPPORTUNITY_KNOCKS':
+    case 'PAY_TAXES':
+    case 'STUDENT_LOAN_REDIRECT':
+    case 'CIGARETTE_BREAK':
+    case 'UNIVERSITY':
+    case 'MCDONALDS':
+    case 'FINANCE_BRO':
+    case 'ART_GALLERY':
+    case 'SUPPLY_TEACHER':
+    case 'GYM_MEMBERSHIP':
+    case 'COP':
+    case 'LOTTERY':
+    case 'JAPAN_TRIP':
+    case 'DEI_OFFICER':
+    case 'REVOLUTION':
+    case 'TECH_BRO':
+    case 'RIGHT_WING_GRIFTER':
+    case 'OZEMPIC':
+    case 'STARVING_ARTIST':
+    case 'YACHT_HARBOR':
+    case 'INSTAGRAM_FOLLOWERS':
+    case 'STREAMER': {
+      // Phase 5 stub: no effect yet — full mechanics in Phases 6–10
+      console.log(`[tile] ${player.name} landed on ${tileName} (stub)`);
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, tileType);
       break;
     }
 
     case 'PAYDAY':
     case 'PRISON':
-    case 'PARK_BENCH':
     case 'HOSPITAL':
     case 'APARTMENT':
     case 'HOUSE':
-    case 'CAREER_ENTRANCE':
-    case 'OPPORTUNITY':
-    case 'TBD':
     default:
-      // Phase 3 stub: all tile types advance turn immediately.
-      // Phases 4–8 replace these stubs with real handlers.
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, tileType);
       break;
   }
@@ -972,6 +805,7 @@ io.on('connection', (socket) => {
         happiness: 0
         // successFormula intentionally omitted
       })),
+      boardTiles: BOARD_TILES,
       timestamp: Date.now()
     });
 
@@ -1158,3 +992,4 @@ export {
   isValidPlayerName, isValidFormula, canStartGame,
   applyDrains, advanceTurn, dispatchTile
 };
+

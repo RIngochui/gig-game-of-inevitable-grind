@@ -91,14 +91,9 @@ describe('createGameRoom', () => {
     expect(room.players.size).toBe(0);
   });
 
-  test('sharedResources.investmentPool starts at 0', () => {
+  test('sharedResources.lotteryPool starts at 50000', () => {
     const room = createGameRoom('ABCD', 'sock-host');
-    expect(room.sharedResources.investmentPool).toBe(0);
-  });
-
-  test('sharedResources.cryptoInvestments is an empty Map', () => {
-    const room = createGameRoom('ABCD', 'sock-host');
-    expect(room.sharedResources.cryptoInvestments).toBeInstanceOf(Map);
+    expect(room.sharedResources.lotteryPool).toBe(50000);
   });
 
   test('turnOrder is empty array before game start', () => {
