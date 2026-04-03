@@ -137,10 +137,10 @@ Plans:
 - [ ] Goomba Stomp: occupied tile → target sent to Japan Trip
 - [ ] Cop Goomba Stomp: target sent to Prison
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 06-01-PLAN.md — TDD Wave 0: write failing tests for hospital, prison, japan-trip, goomba-stomp, doctor-role (all 5 test suites red)
+- [x] 06-01-PLAN.md — TDD Wave 0: write failing tests for hospital, prison, japan-trip, goomba-stomp, doctor-role (all 5 test suites red)
 - [ ] 06-02-PLAN.md — Server mechanics: Player interface extension (inHospital, inJapan, isDoctor, isCop), Hospital/Prison/Japan turn-flow interception, Goomba Stomp occupancy routing, card-play guards
 - [ ] 06-03-PLAN.md — Client UI: socket event handlers for all Phase 6 events in initPlayerGame and initHostGame IIFEs, recompile game.js
 
