@@ -50,6 +50,11 @@ export interface Player {
   hasSubmittedFormula: boolean;
   // Cards in hand
   luckCards: string[];
+  // Phase 6 location flags
+  inHospital: boolean;
+  inJapan: boolean;
+  isDoctor: boolean;
+  isCop: boolean;
   // Heartbeat
   lastPong: number;
 }
@@ -247,6 +252,10 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     successFormula: null,
     hasSubmittedFormula: false,
     luckCards: [],
+    inHospital: false,
+    inJapan: false,
+    isDoctor: false,
+    isCop: false,
     lastPong: Date.now()
   };
 }
@@ -391,7 +400,12 @@ function getFullState(room: GameRoom, requestingSocketId: string | null = null):
       hasSubmittedFormula: player.hasSubmittedFormula,
       luckCardCount: player.luckCards.length,
       // Only reveal own Success Formula — never others'
-      successFormula: socketId === requestingSocketId ? player.successFormula : null
+      successFormula: socketId === requestingSocketId ? player.successFormula : null,
+      // Phase 6 location flags
+      inHospital: player.inHospital,
+      inJapan: player.inJapan,
+      isDoctor: player.isDoctor,
+      isCop: player.isCop
     };
   }
 
