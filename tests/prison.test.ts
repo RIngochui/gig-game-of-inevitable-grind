@@ -134,3 +134,57 @@ describe('PRISON-05 bail payment of $5,000 removes inPrison and deducts money', 
     expect(player.money).toBe(5000);
   });
 });
+
+// -- PRISON-06: prisonTurns counter tracks turns served --------
+
+describe('PRISON-06 prisonTurns counter increments on failed escape', () => {
+  it('prisonTurns starts at 0 and increments when escape fails', () => {
+    const room = createMockRoom();
+    const player = room.players.get('socket-a') as any;
+    player.inPrison = true;
+    player.position = 10;
+    expect(player.prisonTurns).toBe(0);
+
+    // Mock Math.random so 2d6 produces 8 (not in {9, 11, 12} -> stay)
+    const origRandom = Math.random;
+    let callCount = 0;
+    Math.random = () => {
+      callCount++;
+      return callCount % 2 === 1 ? 3 / 6 : 3 / 6; // both dice = 4 -> total 8
+    };
+
+    const { handlePrisonEscape } = require('../server');
+    handlePrisonEscape(room, 'TEST', 'socket-a');
+
+    Math.random = origRandom;
+
+    expect(player.prisonTurns).toBe(1);
+    expect(player.inPrison).toBe(true);
+  });
+});
+
+describe('PRISON-06 prisonTurns resets to 0 on escape', () => {
+  it('prisonTurns resets when player escapes via roll', () => {
+    const room = createMockRoom();
+    const player = room.players.get('socket-a') as any;
+    player.inPrison = true;
+    player.position = 10;
+    player.prisonTurns = 3; // simulate 3 failed attempts
+
+    // Mock Math.random so 2d6 produces 9 (escape)
+    const origRandom = Math.random;
+    let callCount = 0;
+    Math.random = () => {
+      callCount++;
+      return callCount % 2 === 1 ? 3 / 6 : 4 / 6; // 4+5 = 9
+    };
+
+    const { handlePrisonEscape } = require('../server');
+    handlePrisonEscape(room, 'TEST', 'socket-a');
+
+    Math.random = origRandom;
+
+    expect(player.prisonTurns).toBe(0);
+    expect(player.inPrison).toBe(false);
+  });
+});

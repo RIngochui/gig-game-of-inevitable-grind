@@ -548,7 +548,7 @@ socket.on('ping', () => { socket.emit('pong'); });
         const p = player as any;
         const dot = document.querySelector(`.player-dot[title="${socketId}"]`) as HTMLElement;
         if (dot) {
-          const status = p.inHospital ? '[H]' : p.inPrison ? '[P]' : p.inJapan ? '[J]' : '';
+          const status = p.inHospital ? '[H]' : p.inPrison ? `[P:${p.prisonTurns ?? 0}]` : p.inJapan ? '[J]' : '';
           dot.title = socketId + (status ? ` ${status}` : '');
         }
       }

@@ -29,6 +29,7 @@ export interface Player {
   position: number;
   // Status flags
   inPrison: boolean;
+  prisonTurns: number;
   skipNextTurn: boolean;
   retired: boolean;
   unemployed: boolean;
@@ -235,6 +236,7 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     salary: 10000,
     position: 0,
     inPrison: false,
+    prisonTurns: 0,
     skipNextTurn: false,
     retired: false,
     unemployed: false,
@@ -384,6 +386,7 @@ function getFullState(room: GameRoom, requestingSocketId: string | null = null):
       salary: player.salary,
       position: player.position,
       inPrison: player.inPrison,
+      prisonTurns: player.prisonTurns,
       skipNextTurn: player.skipNextTurn,
       retired: player.retired,
       unemployed: player.unemployed,
@@ -548,6 +551,7 @@ function handlePrisonEscape(room: GameRoom, roomCode: string, playerId: string):
   if (prisonRoll === 9 || prisonRoll === 11 || prisonRoll === 12) {
     // ESCAPE
     player.inPrison = false;
+    player.prisonTurns = 0;
     player.position = 11; // Prison Exit — Opportunity Knocks tile after Prison
     io.to(roomCode).emit('prison-escaped', {
       playerName: player.name,
@@ -558,10 +562,12 @@ function handlePrisonEscape(room: GameRoom, roomCode: string, playerId: string):
     advanceTurn(room, roomCode, playerId, player.name, prisonRoll, 10, 11, 'PRISON_ESCAPE');
   } else {
     // STAY
+    player.prisonTurns += 1;
     io.to(roomCode).emit('prison-stayed', {
       playerName: player.name,
       roll: prisonRoll,
-      message: `Roll was ${prisonRoll} — not in {9, 11, 12}, staying in prison`
+      message: `Roll was ${prisonRoll} — not in {9, 11, 12}, staying in prison`,
+      turnsServed: player.prisonTurns
     });
     advanceTurn(room, roomCode, playerId, player.name, prisonRoll, player.position, player.position, 'PRISON_STAY');
   }
@@ -578,6 +584,7 @@ function handlePrisonBail(room: GameRoom, roomCode: string, playerId: string): v
   const BAIL_AMOUNT = 5000;
   player.money -= BAIL_AMOUNT;
   player.inPrison = false;
+  player.prisonTurns = 0;
   player.position = 11; // Prison Exit
 
   io.to(roomCode).emit('prison-escaped', {
@@ -685,6 +692,7 @@ function checkGoombaStomp(room: GameRoom, roomCode: string, stomperId: string): 
       if (stomper.isCop) {
         target.position = 10; // PRISON_TILE
         target.inPrison = true;
+        target.prisonTurns = 0;
       } else {
         target.position = 20; // JAPAN_TRIP_TILE
         target.inJapan = true;
@@ -894,6 +902,7 @@ function dispatchTile(
       } else {
         // Normal player: enter prison
         player.inPrison = true;
+        player.prisonTurns = 0;
         player.inHospital = false;
         player.inJapan = false;
         io.to(roomCode).emit('prison-entered', {
