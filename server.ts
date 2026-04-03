@@ -445,6 +445,263 @@ export function checkWinCondition(player: Player, room: GameRoom): boolean {
   return formulaMoneyOk && formulaFameOk && formulaHappinessOk;
 }
 
+// ── Phase 6: Hospital helpers ──────────────────────────────────────────────
+
+/**
+ * Check if a player's HP has dropped to 0 or below, and if so,
+ * move them to Hospital (Tile 30) immediately.
+ * Call this after any HP-modifying operation.
+ */
+function checkHpAndHospitalize(player: Player, room: GameRoom, roomCode: string): void {
+  if (player.hp <= 0) {
+    player.hp = 0;
+    player.inHospital = true;
+    player.inJapan = false;
+    player.inPrison = false;
+    player.position = 30;
+    io.to(roomCode).emit('hospital-entered', {
+      playerName: player.name,
+      reason: 'hp_zero',
+      newHp: 0
+    });
+  }
+}
+
+/**
+ * Alias for checkHpAndHospitalize — called by hospital tests as handleHpCheck.
+ * Only triggers if hp <= 0.
+ */
+function handleHpCheck(room: GameRoom, roomCode: string, playerId: string): void {
+  const player = room.players.get(playerId);
+  if (!player) return;
+  checkHpAndHospitalize(player, room, roomCode);
+}
+
+/**
+ * Hospital turn handler: roll 1d6.
+ * - Roll 1–5 (≤ 5): escape — inHospital=false, +5 HP, pay Math.floor(salary/2) to Doctor or Banker.
+ * - Roll 6: stay — emit 'hospital-stayed', call advanceTurn.
+ * Call this inside roll-dice when player.inHospital is true.
+ */
+function handleHospitalEscape(room: GameRoom, roomCode: string, playerId: string): void {
+  const player = room.players.get(playerId);
+  if (!player) return;
+
+  const escapeRoll = Math.floor(Math.random() * 6) + 1;
+
+  if (escapeRoll <= 5) {
+    // ESCAPE
+    player.inHospital = false;
+    player.hp += 5;
+    const payment = Math.floor(player.salary / 2);
+    player.money -= payment;
+
+    // Route payment to Doctor if one exists, else Banker
+    const doctorPlayer = Array.from(room.players.values()).find(p => p.isDoctor === true);
+    let recipientRole: string;
+    if (doctorPlayer) {
+      doctorPlayer.money += payment;
+      recipientRole = 'Doctor';
+    } else {
+      recipientRole = 'Banker';
+    }
+
+    io.to(roomCode).emit('hospital-escaped', {
+      playerName: player.name,
+      escapeRoll,
+      hpGained: 5,
+      payment,
+      recipientRole,
+      newHp: player.hp,
+      newMoney: player.money
+    });
+
+    advanceTurn(room, roomCode, playerId, player.name, escapeRoll, player.position, player.position, 'HOSPITAL_ESCAPE');
+  } else {
+    // STAY
+    io.to(roomCode).emit('hospital-stayed', {
+      playerName: player.name,
+      escapeRoll,
+      message: 'Roll was 6 — patient stays in hospital'
+    });
+
+    advanceTurn(room, roomCode, playerId, player.name, escapeRoll, player.position, player.position, 'HOSPITAL_STAY');
+  }
+}
+
+// ── Phase 6: Prison helpers ────────────────────────────────────────────────
+
+/**
+ * Prison turn handler: roll 2d6.
+ * - Roll ∈ {9, 11, 12}: escape — inPrison=false, position=11.
+ * - Any other roll: stay — emit 'prison-stayed', call advanceTurn.
+ * Call this inside roll-dice when player.inPrison is true.
+ */
+function handlePrisonEscape(room: GameRoom, roomCode: string, playerId: string): void {
+  const player = room.players.get(playerId);
+  if (!player) return;
+
+  const pd1 = Math.floor(Math.random() * 6) + 1;
+  const pd2 = Math.floor(Math.random() * 6) + 1;
+  const prisonRoll = pd1 + pd2;
+
+  if (prisonRoll === 9 || prisonRoll === 11 || prisonRoll === 12) {
+    // ESCAPE
+    player.inPrison = false;
+    player.position = 11; // Prison Exit — Opportunity Knocks tile after Prison
+    io.to(roomCode).emit('prison-escaped', {
+      playerName: player.name,
+      roll: prisonRoll,
+      method: 'roll',
+      newPosition: 11
+    });
+    advanceTurn(room, roomCode, playerId, player.name, prisonRoll, 10, 11, 'PRISON_ESCAPE');
+  } else {
+    // STAY
+    io.to(roomCode).emit('prison-stayed', {
+      playerName: player.name,
+      roll: prisonRoll,
+      message: `Roll was ${prisonRoll} — not in {9, 11, 12}, staying in prison`
+    });
+    advanceTurn(room, roomCode, playerId, player.name, prisonRoll, player.position, player.position, 'PRISON_STAY');
+  }
+}
+
+/**
+ * Prison bail handler: player pays $5,000 to leave prison immediately.
+ * Deducts $5,000, sets inPrison=false, moves to Tile 11.
+ */
+function handlePrisonBail(room: GameRoom, roomCode: string, playerId: string): void {
+  const player = room.players.get(playerId);
+  if (!player) return;
+
+  const BAIL_AMOUNT = 5000;
+  player.money -= BAIL_AMOUNT;
+  player.inPrison = false;
+  player.position = 11; // Prison Exit
+
+  io.to(roomCode).emit('prison-escaped', {
+    playerName: player.name,
+    method: 'bail',
+    bailAmount: BAIL_AMOUNT,
+    newMoney: player.money,
+    newPosition: 11
+  });
+  advanceTurn(room, roomCode, playerId, player.name, 0, 10, 11, 'PRISON_BAIL');
+}
+
+// ── Phase 6: Card-play guard ───────────────────────────────────────────────
+
+/**
+ * Returns false if a player cannot play cards (in Hospital or Japan Trip).
+ * Prison does NOT block card play (per PRISON-03).
+ * Returns true if card play is allowed.
+ */
+function canPlayCard(room: GameRoom, roomCode: string, playerId: string): boolean {
+  const player = room.players.get(playerId);
+  if (!player) return false;
+
+  if (player.inHospital || player.inJapan) {
+    io.to(roomCode).emit('error', { message: 'Cannot play cards in Hospital or Japan Trip' });
+    return false;
+  }
+  return true;
+}
+
+// ── Phase 6: Japan Trip helpers ────────────────────────────────────────────
+
+/**
+ * Japan Trip turn-start handler.
+ * Called at the start of a turn for a player who is inJapan.
+ * - Applies +2 Happiness and Math.ceil(salary/5) drain.
+ * - Rolls 2d6:
+ *   - Roll >= 9: forced leave → position advances to position+1, inJapan=false, dispatchTile.
+ *   - Roll < 9:  emit 'japan-stay-choice' to player socket; turn pauses for response.
+ */
+function handleJapanTurnStart(room: GameRoom, roomCode: string, playerId: string): void {
+  const player = room.players.get(playerId);
+  if (!player) return;
+
+  // Apply happiness and drain
+  player.happiness += 2;
+  const drain = Math.ceil(player.salary / 5);
+  player.money -= drain;
+
+  // Roll 2d6 for forced leave check
+  const jd1 = Math.floor(Math.random() * 6) + 1;
+  const jd2 = Math.floor(Math.random() * 6) + 1;
+  const japanRoll = jd1 + jd2;
+
+  if (japanRoll >= 9) {
+    // FORCED LEAVE
+    player.inJapan = false;
+    player.position = (player.position + 1) % BOARD_SIZE;
+
+    io.to(roomCode).emit('japan-forced-leave', {
+      playerName: player.name,
+      roll: japanRoll,
+      newPosition: player.position,
+      happinessGained: 2,
+      costPaid: drain
+    });
+
+    // Dispatch the new tile, then normal turn advance happens inside dispatchTile → advanceTurn
+    dispatchTile(room, roomCode, playerId, player.position, japanRoll, 20);
+  } else {
+    // STAY CHOICE — roll <= 8, player can choose
+    room.turnPhase = TURN_PHASES.TILE_RESOLVING;
+    io.sockets.sockets.get(playerId)?.emit('japan-stay-choice', {
+      playerName: player.name,
+      roll: japanRoll,
+      happinessGained: 2,
+      costPaid: drain
+    });
+    // Turn is paused — waiting for 'japan-stay' or 'japan-leave' socket event
+  }
+}
+
+// ── Phase 6: Goomba Stomp helper ───────────────────────────────────────────
+
+/**
+ * Check for Goomba Stomp after a player moves to newPos.
+ * Finds all other players on the same tile and sends them to:
+ *   - Japan Trip (Tile 20) if stomper is NOT a Cop.
+ *   - Prison (Tile 10) if stomper IS a Cop.
+ * Returns the array of stomped players (for testability).
+ */
+function checkGoombaStomp(room: GameRoom, roomCode: string, stomperId: string): Player[] {
+  const stomper = room.players.get(stomperId);
+  if (!stomper) return [];
+
+  const stompTargets = Array.from(room.players.values())
+    .filter(p => p.socketId !== stomperId && p.position === stomper.position);
+
+  if (stompTargets.length > 0) {
+    for (const target of stompTargets) {
+      target.inHospital = false;
+      target.inJapan = false;
+      target.inPrison = false;
+
+      if (stomper.isCop) {
+        target.position = 10; // PRISON_TILE
+        target.inPrison = true;
+      } else {
+        target.position = 20; // JAPAN_TRIP_TILE
+        target.inJapan = true;
+      }
+    }
+
+    io.to(roomCode).emit('goomba-stomped', {
+      stomperName: stomper.name,
+      stompedNames: stompTargets.map(t => t.name),
+      isCopStomp: stomper.isCop ?? false,
+      destination: stomper.isCop ? 10 : 20
+    });
+  }
+
+  return stompTargets;
+}
+
 // ── Heartbeat state ────────────────────────────────────────────────────────
 const socketLastPong = new Map<string, number>();
 
@@ -517,6 +774,12 @@ function advanceTurn(
 
   const nextPlayerId = room.turnOrder[room.currentTurnIndex];
   const nextPlayer = room.players.get(nextPlayerId);
+
+  // Phase 6: Japan Trip turn-start — if next player is inJapan, handle their Japan turn
+  if (nextPlayer && nextPlayer.inJapan) {
+    handleJapanTurnStart(room, roomCode, nextPlayerId);
+    return; // Japan turn-start handles its own flow (emit/dispatch)
+  }
 
   // Check skipNextTurn for new current player
   if (nextPlayer && nextPlayer.skipNextTurn) {
@@ -604,6 +867,57 @@ function dispatchTile(
       break;
     }
 
+    case 'JAPAN_TRIP': {
+      // Phase 6: Landing on Japan Trip — +1 Happiness, set inJapan=true
+      player.happiness += 1;
+      player.inJapan = true;
+      player.inHospital = false;
+      player.inPrison = false;
+      io.to(roomCode).emit('japan-landed', {
+        playerName: player.name,
+        happinessGained: 1,
+        newHappiness: player.happiness
+      });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'JAPAN_TRIP');
+      break;
+    }
+
+    case 'PRISON': {
+      // Phase 6: Landing on Prison — Cop immunity check
+      if (player.isCop) {
+        // Cops are immune to Prison — take fine/HP instead (stub for now; no fine yet)
+        io.to(roomCode).emit('prison-cop-immune', {
+          playerName: player.name,
+          message: 'Cop is immune to Prison'
+        });
+        advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PRISON_COP_IMMUNE');
+      } else {
+        // Normal player: enter prison
+        player.inPrison = true;
+        player.inHospital = false;
+        player.inJapan = false;
+        io.to(roomCode).emit('prison-entered', {
+          playerName: player.name,
+          position: tileIndex
+        });
+        advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PRISON_ENTERED');
+      }
+      break;
+    }
+
+    case 'HOSPITAL': {
+      // Phase 6: Landing on Hospital tile (e.g. moved here due to HP = 0)
+      // Player is already flagged inHospital=true by checkHpAndHospitalize
+      // This case handles direct landing (no HP-zero trigger) — just advance turn
+      io.to(roomCode).emit('hospital-entered', {
+        playerName: player.name,
+        reason: 'landed',
+        newHp: player.hp
+      });
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'HOSPITAL');
+      break;
+    }
+
     case 'OPPORTUNITY_KNOCKS':
     case 'PAY_TAXES':
     case 'STUDENT_LOAN_REDIRECT':
@@ -616,7 +930,6 @@ function dispatchTile(
     case 'GYM_MEMBERSHIP':
     case 'COP':
     case 'LOTTERY':
-    case 'JAPAN_TRIP':
     case 'DEI_OFFICER':
     case 'REVOLUTION':
     case 'TECH_BRO':
@@ -633,8 +946,6 @@ function dispatchTile(
     }
 
     case 'PAYDAY':
-    case 'PRISON':
-    case 'HOSPITAL':
     case 'APARTMENT':
     case 'HOUSE':
     default:
@@ -867,6 +1178,18 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Phase 6: Hospital intercept — roll 1d6 to escape instead of normal movement
+    if (player.inHospital) {
+      handleHospitalEscape(room, roomCode, socket.id);
+      return;
+    }
+
+    // Phase 6: Prison intercept — roll 2d6 to escape instead of normal movement
+    if (player.inPrison) {
+      handlePrisonEscape(room, roomCode, socket.id);
+      return;
+    }
+
     // Server-authoritative 2d6 roll (main board; 1d6 for career paths deferred to Phase 7)
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
@@ -875,6 +1198,9 @@ io.on('connection', (socket) => {
     const fromPosition = player.position;
     const newPos = (fromPosition + roll) % BOARD_SIZE;
     player.position = newPos;
+
+    // Phase 6: Goomba Stomp check — after position update, before dispatchTile
+    checkGoombaStomp(room, roomCode, socket.id);
 
     room.turnPhase = TURN_PHASES.MID_ROLL;
 
@@ -921,6 +1247,50 @@ io.on('connection', (socket) => {
       beneficiaryName: beneficiary.name, beneficiaryNewMoney: beneficiary.money
     });
     advanceTurn(room, roomCode, socket.id, benefactor.name, 0, benefactor.position, benefactor.position, 'NEPOTISM');
+  });
+
+  // Phase 6: Prison bail payment handler
+  socket.on('prison-bail', () => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+    const player = room.players.get(socket.id);
+    if (!player) { socket.emit('error', { message: 'You are not in this room' }); return; }
+    if (!player.inPrison) { socket.emit('error', { message: 'You are not in prison' }); return; }
+    handlePrisonBail(room, roomCode, socket.id);
+  });
+
+  // Phase 6: Japan Trip — player chooses to stay
+  socket.on('japan-stay', () => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+    const player = room.players.get(socket.id);
+    if (!player) { socket.emit('error', { message: 'You are not in this room' }); return; }
+    if (!player.inJapan) { socket.emit('error', { message: 'You are not in Japan Trip' }); return; }
+    // Player stays — inJapan remains true, just advance the turn
+    advanceTurn(room, roomCode, socket.id, player.name, 0, player.position, player.position, 'JAPAN_STAY');
+  });
+
+  // Phase 6: Japan Trip — player chooses to leave
+  socket.on('japan-leave', () => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) { socket.emit('error', { message: 'You are not in a room' }); return; }
+    const room = getRoom(roomCode);
+    if (!room) { socket.emit('error', { message: 'Room was deleted' }); return; }
+    const player = room.players.get(socket.id);
+    if (!player) { socket.emit('error', { message: 'You are not in this room' }); return; }
+    if (!player.inJapan) { socket.emit('error', { message: 'You are not in Japan Trip' }); return; }
+    // Player leaves — advance position and dispatch new tile
+    player.inJapan = false;
+    player.position = (player.position + 1) % BOARD_SIZE;
+    io.to(roomCode).emit('japan-left', {
+      playerName: player.name,
+      newPosition: player.position
+    });
+    dispatchTile(room, roomCode, socket.id, player.position, 0, 20);
   });
 
   socket.on('disconnect', (reason: string) => {
@@ -1007,6 +1377,10 @@ export {
   RATE_LIMITS, checkRateLimit, clearRateLimitState, rateLimitState,
   socketLastPong, HEARTBEAT_INTERVAL_MS, HEARTBEAT_TIMEOUT_MS,
   isValidPlayerName, isValidFormula, canStartGame,
-  applyDrains, advanceTurn, dispatchTile
+  applyDrains, advanceTurn, dispatchTile,
+  // Phase 6 exports
+  handleHospitalEscape, handlePrisonBail, handlePrisonEscape,
+  handleJapanTurnStart, checkGoombaStomp, canPlayCard,
+  checkHpAndHospitalize, handleHpCheck
 };
 
