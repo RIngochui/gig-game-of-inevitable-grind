@@ -588,6 +588,26 @@ socket.on('ping', () => { socket.emit('pong'); });
     addTurnHistory(`STOMP! ${stomperName} → stomped ${stompedNames.join(', ')} to ${destLabel}`);
   });
 
+  // ── Phase 7: Property event handlers (host screen) ─────────────────
+
+  socket.on('property-purchased', ({ tileIndex, ownerName, tileName }: { tileIndex: number; ownerName: string; tileName: string; buyerName: string; cost: number }) => {
+    // Update the board tile label to show ownership
+    const tile = document.querySelector(`.tile[data-index="${tileIndex}"]`) as HTMLElement;
+    if (tile) {
+      const nameEl = tile.querySelector('.tile-name') as HTMLElement;
+      if (nameEl) nameEl.textContent = `${ownerName}'s ${tileName}`;
+    }
+    addTurnHistory(`${ownerName} bought ${tileName} (tile ${tileIndex})`);
+  });
+
+  socket.on('property-rent-paid', ({ visitorName, ownerName, rentAmount }: { tileIndex: number; visitorName: string; ownerName: string; rentAmount: number }) => {
+    addTurnHistory(`${visitorName} paid $${rentAmount.toLocaleString()} rent to ${ownerName}`);
+  });
+
+  socket.on('property-default', ({ visitorName, ownerName }: { tileIndex: number; visitorName: string; ownerName: string; cashTransferred: number }) => {
+    addTurnHistory(`${visitorName} couldn't pay rent — all cash to ${ownerName}, sent to Prison`);
+  });
+
 })();
 
 // ── Player Game Logic ──────────────────────────────────────────────────────
@@ -863,6 +883,50 @@ socket.on('ping', () => { socket.emit('pong'); });
     const destLabel = destination === 10 ? 'Prison' : 'Japan Trip';
     const msg = `${stomperName} stomped ${stompedNames.join(', ')}! Sent to ${destLabel}!`;
     if (lastRollDisplay) lastRollDisplay.textContent = msg;
+  });
+
+  // ── Phase 7: Property event handlers (player screen) ────────────────
+
+  const propertyChoiceDiv = document.getElementById('property-choice') as HTMLElement | null;
+  const propertyChoiceMsg = document.getElementById('property-choice-msg') as HTMLElement | null;
+  const btnBuyProperty    = document.getElementById('btn-buy-property') as HTMLButtonElement | null;
+  const btnPassProperty   = document.getElementById('btn-pass-property') as HTMLButtonElement | null;
+
+  function hidePropertyChoice(): void {
+    if (propertyChoiceDiv) propertyChoiceDiv.style.display = 'none';
+  }
+
+  socket.on('property-buy-prompt', ({ tileName, cost, currentMoney }: { tileIndex: number; tileName: string; cost: number; currentMoney: number }) => {
+    if (propertyChoiceDiv && propertyChoiceMsg) {
+      propertyChoiceMsg.textContent = `${tileName} is for sale! Cost: $${cost.toLocaleString()}. You have $${currentMoney.toLocaleString()}.`;
+      propertyChoiceDiv.style.display = 'block';
+    }
+  });
+
+  if (btnBuyProperty) {
+    btnBuyProperty.addEventListener('click', () => {
+      socket.emit('buy-property', { accept: true });
+      hidePropertyChoice();
+    });
+  }
+
+  if (btnPassProperty) {
+    btnPassProperty.addEventListener('click', () => {
+      socket.emit('buy-property', { accept: false });
+      hidePropertyChoice();
+    });
+  }
+
+  socket.on('property-purchased', ({ buyerName, tileName, cost }: { tileIndex: number; ownerName: string; tileName: string; buyerName: string; cost: number }) => {
+    if (lastRollDisplay) lastRollDisplay.textContent = `${buyerName} bought ${tileName} for $${cost.toLocaleString()}`;
+  });
+
+  socket.on('property-rent-paid', ({ visitorName, ownerName, rentAmount }: { tileIndex: number; visitorName: string; ownerName: string; rentAmount: number }) => {
+    if (lastRollDisplay) lastRollDisplay.textContent = `${visitorName} paid $${rentAmount.toLocaleString()} rent to ${ownerName}`;
+  });
+
+  socket.on('property-default', ({ visitorName, ownerName, cashTransferred }: { tileIndex: number; visitorName: string; ownerName: string; cashTransferred: number }) => {
+    if (lastRollDisplay) lastRollDisplay.textContent = `${visitorName} couldn't pay rent — all $${cashTransferred.toLocaleString()} to ${ownerName}, sent to Prison`;
   });
 
 })();
