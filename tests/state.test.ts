@@ -7,6 +7,7 @@ let createGameRoom: (code: string, hostId: string) => GameRoom;
 let GAME_PHASES: Record<string, string>;
 let TURN_PHASES: Record<string, string>;
 let STARTING_MONEY: number;
+let getFullState: (room: GameRoom, socketId?: string | null) => object;
 
 beforeEach(() => {
   const server = require('../server');
@@ -15,6 +16,7 @@ beforeEach(() => {
   GAME_PHASES = server.GAME_PHASES;
   TURN_PHASES = server.TURN_PHASES;
   STARTING_MONEY = server.STARTING_MONEY;
+  getFullState = server.getFullState;
   server.rooms.clear();
 });
 
@@ -58,6 +60,16 @@ describe('createPlayer', () => {
   test('luckCards is empty array by default', () => {
     const p = createPlayer('sock-1', 'Alice');
     expect(p.luckCards).toEqual([]);
+  });
+
+  test('initializes hp to 10', () => {
+    const p = createPlayer('sock-1', 'Alice');
+    expect(p.hp).toBe(10);
+  });
+
+  test('initializes salary to 10000', () => {
+    const p = createPlayer('sock-1', 'Alice');
+    expect(p.salary).toBe(10000);
   });
 });
 
@@ -111,5 +123,18 @@ describe('TURN_PHASES constant', () => {
     expect(TURN_PHASES.LANDED).toBe('LANDED');
     expect(TURN_PHASES.TILE_RESOLVING).toBe('TILE_RESOLVING');
     expect(TURN_PHASES.WAITING_FOR_NEXT_TURN).toBe('WAITING_FOR_NEXT_TURN');
+  });
+});
+
+describe('getFullState', () => {
+  test('includes hp and salary in player snapshot', () => {
+    const room = createGameRoom('ABCD', 'host-1');
+    const player = createPlayer('sock-1', 'Alice');
+    room.players.set('sock-1', player);
+    const state = getFullState(room, 'sock-1') as any;
+    expect(state.players['sock-1'].hp).toBeDefined();
+    expect(state.players['sock-1'].salary).toBeDefined();
+    expect(typeof state.players['sock-1'].hp).toBe('number');
+    expect(typeof state.players['sock-1'].salary).toBe('number');
   });
 });
