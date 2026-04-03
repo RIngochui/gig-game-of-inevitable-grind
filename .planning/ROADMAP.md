@@ -3,7 +3,7 @@
 **Project:** Jackbox-style multiplayer party game (Node.js + Socket.io + TypeScript)
 **Target:** v1 release
 **Granularity:** Fine (12 phases)
-**Last Updated:** 2026-04-02
+**Last Updated:** 2026-04-03
 
 ---
 
@@ -136,6 +136,13 @@ Plans:
 - [ ] Cannot use Experience/Opportunity cards in Hospital, Prison, or Japan Trip
 - [ ] Goomba Stomp: occupied tile → target sent to Japan Trip
 - [ ] Cop Goomba Stomp: target sent to Prison
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — TDD Wave 0: write failing tests for hospital, prison, japan-trip, goomba-stomp, doctor-role (all 5 test suites red)
+- [ ] 06-02-PLAN.md — Server mechanics: Player interface extension (inHospital, inJapan, isDoctor, isCop), Hospital/Prison/Japan turn-flow interception, Goomba Stomp occupancy routing, card-play guards
+- [ ] 06-03-PLAN.md — Client UI: socket event handlers for all Phase 6 events in initPlayerGame and initHostGame IIFEs, recompile game.js
 
 ---
 
@@ -310,7 +317,7 @@ Plans:
 | 2. Lobby & Room System | Complete | 2026-03-30 |
 | 3. Core Game Loop | Complete | 2026-04-01 |
 | 4. Economic Tiles (superseded) | Complete | 2026-04-01 |
-| 5. Board Reset | Not started | — |
+| 5. Board Reset | Complete | 2026-04-03 |
 | 6. Hospital, Prison & Japan Trip | Not started | — |
 | 7. Properties & Housing | Not started | — |
 | 8. University & Career Paths | Not started | — |
@@ -333,3 +340,4 @@ Plans:
 
 *Roadmap created: 2026-03-29*
 *Redesigned: 2026-04-02 — full board reset based on finalized game design doc*
+*Phase 6 planned: 2026-04-03 — Hospital, Prison, Japan Trip, Goomba Stomp, Doctor role*
