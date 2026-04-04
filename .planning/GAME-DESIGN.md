@@ -96,6 +96,7 @@ If you end movement on a tile already occupied by another player, you **may choo
 
 ### Doctor
 - Granted by: Medical Degree (on University path completion) — no career path required
+- On degree selection: immediately sent to Hospital (residency placement); +2 HP on exit applies
 - Only one Doctor per game (max 1 degree per player; Medical Degree is permanent and cannot be cleared)
 - Passive (active for the whole game): whenever any player pays to leave Hospital, that player's full Salary goes to Doctor; if Doctor is the patient, payment goes to Banker instead
 

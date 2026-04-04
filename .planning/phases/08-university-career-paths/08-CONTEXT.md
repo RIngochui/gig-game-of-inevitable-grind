@@ -54,7 +54,7 @@ Implement University path (7 degrees) and all 9 career paths: entry requirement 
 ### Role Unlocks
 - **D-18:** Cop path completion → `player.isCop = true` (already on Player). Grants: Prison immunity, enhanced Goomba Stomp (→ Prison instead of Japan Trip).
 - **D-19:** Starving Artist path completion → `player.isArtist = true` (new field, not yet on Player). Grants: Art Gallery/NFT tile (Tile 14) buyers pay Artist instead of Banker.
-- **D-20:** **Medical Degree** (renamed from Nursing Degree) → `player.isDoctor = true` immediately on degree selection (University path exit). No separate career path required. Doctor passive is active for the entire game and cannot be cleared by taking another career path (degree is permanent anyway — max 1 degree per player). Full Doctor passive mechanic (Hospital payments route to Doctor) already live from Phase 6.
+- **D-20:** **Medical Degree** (renamed from Nursing Degree) → `player.isDoctor = true` immediately on degree selection (University path exit). No separate career path required. On degree selection, player is **immediately sent to Hospital** (residency placement) — same as `inHospital = true, position = 30`; the +2 HP on exit applies normally. Doctor passive is active for the entire game and cannot be cleared (degree is permanent; max 1 per player). Full Doctor passive mechanic (Hospital payments route to Doctor) already live from Phase 6.
 
 ### Experience Card on Completion
 - **D-22:** Teaching Degree is available on the **first** University run — no second run required. All 7 degrees are available on any University completion. (Supersedes old REQUIREMENTS.md COLL-05 which gated Teaching to a second run.)

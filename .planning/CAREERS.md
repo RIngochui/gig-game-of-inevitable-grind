@@ -65,7 +65,7 @@
 - Political Science
 - Art
 - Teaching Degree
-- Medical Degree (grants Doctor passive immediately — no career path required)
+- Medical Degree (grants Doctor passive; player immediately sent to Hospital on degree selection — residency placement; +2 HP on exit applies)
 
 ---
 

@@ -199,7 +199,7 @@ Plans:
 - [ ] Each path completion: +1 Experience card
 - [ ] Cop completion: gains Prison immunity + enhanced Goomba Stomp
 - [ ] Artist completion: gains Artist role (Art Gallery payments)
-- [ ] Doctor: Medical Degree (on University completion) → isDoctor = true; passive active immediately
+- [ ] Doctor: Medical Degree (on University completion) → isDoctor = true, immediately sent to Hospital (residency); passive active immediately
 - [ ] Unemployed state if leaving path early
 
 ---
