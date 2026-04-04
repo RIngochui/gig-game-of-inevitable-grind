@@ -49,19 +49,26 @@ Exceptions: none
 
 ## Typography
 
+Phase 8 active scale (4 sizes, 2 weights):
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 16px (1rem) | 400 | 1.5 |
-| Label | 12px (0.75rem) | 600 | 1.2 |
-| Heading | 24px (1.5rem) | 600 | 1.2 |
-| Display/Monospace | 14px-18px | 600 | 1.2 |
+| Label / Badge | 12px (0.75rem) | 600 | 1.2 |
+| Secondary / Event text | 14px (0.875rem) | 400 | 1.5 |
+| Body / CTA | 16px (1rem) | 400 | 1.5 |
+| Prompt Heading | 18px (1.125rem) | 600 | 1.2 |
 
-**Phase 8 additions:**
-- Path name heading inside prompts: 18px (1.125rem), weight 600, color #f0c040
-- Path tile event text: 14px (0.875rem), weight 400, color #eee, line-height 1.5
-- Stat change badges within event text: 14px, weight 600, monospace, color per stat (see Color section)
-- Degree option labels in selection prompt: 16px (1rem), weight 400, color #eee
-- Requirements text (unmet): 14px (0.875rem), weight 400, color #f87171
+**Weights used:** 400 (body text, degree options, event text, requirement text) and 600 (all headings, labels, badges, and CTA buttons). No other weights.
+
+**Not used in Phase 8:** 24px (base Heading role from Phase 5). Phase 8 has no screen-level headings -- only prompt-level headings at 18px.
+
+**Phase 8 usage details:**
+- Path name heading inside prompts: 18px, weight 600, color #f0c040
+- Path tile event text: 14px, weight 400, color #eee, line-height 1.5
+- Stat change badges within event text: 12px, weight 600, monospace, color per stat (see Color section)
+- Degree option labels in selection prompt: 16px, weight 400, color #eee
+- Requirements text (unmet): 14px, weight 400, color #f87171
+- CTA buttons (Enter, Pass, Roll, Choose): 16px, weight 600
 
 **Source:** Phase 5 UI-SPEC (base), new roles added for path-specific copy.
 
@@ -247,8 +254,8 @@ Container: display none (toggled visible on career entry event)
 Heading: font-size 18px, weight 600, color #f0c040, margin-bottom 8px
 Requirement text: font-size 14px, color #aaa, margin-bottom 4px
 Fee text: font-size 14px, color #eee, font-family monospace, margin-bottom 12px
-Enter button: padding 12px 24px, font-size 16px, weight 700, background #4ade80, color #1a1a2e, border none, border-radius 8px, cursor pointer, margin-right 8px
-Pass button: padding 12px 24px, font-size 16px, weight 700, background #f87171, color #1a1a2e, border none, border-radius 8px, cursor pointer
+Enter button: padding 12px 24px, font-size 16px, weight 600, background #4ade80, color #1a1a2e, border none, border-radius 8px, cursor pointer, margin-right 8px
+Pass button: padding 12px 24px, font-size 16px, weight 600, background #f87171, color #1a1a2e, border none, border-radius 8px, cursor pointer
 ```
 
 Unmet requirements variant: No buttons shown. Requirement text in #f87171. Container auto-hides after 2 seconds.
@@ -299,9 +306,9 @@ Container: display none (toggled visible on Streamer entry)
 Heading: "Streamer Entry", font-size 18px, weight 600, color #f0c040, margin-bottom 8px
 Body: "Roll a 1 to enter ($15,000 per attempt)", font-size 14px, color #aaa, margin-bottom 12px
 Attempt counter: font-size 14px, color #f0c040, monospace, margin-bottom 12px
-Roll button: same style as Enter button (#4ade80, 12px 24px padding, 16px weight 700)
+Roll button: padding 12px 24px, font-size 16px, weight 600, background #4ade80, color #1a1a2e, border none, border-radius 8px, cursor pointer
 Result text: font-size 16px, weight 600, color #4ade80 (success) or #f87171 (fail), margin-top 8px
-Pass button: same style as career Pass button (#f87171)
+Pass button: padding 12px 24px, font-size 16px, weight 600, background #f87171, color #1a1a2e, border none, border-radius 8px, cursor pointer
 ```
 
 **4. Path Progress Indicator (Player Screen)**
@@ -545,6 +552,6 @@ This affects the tile label on the host board and any tooltip/instruction text.
 
 ---
 
-*UI-SPEC created: 2026-04-04*
+*UI-SPEC revised: 2026-04-04*
 *Phase: 8 -- University & Career Paths*
 *Status: draft -- awaiting gsd-ui-checker verification*
