@@ -42,7 +42,7 @@
 ### University
 **Board tile:** 9 | **Exit:** Tile 11 (Opportunity Knocks) | **Tiles:** 8
 **Entry:** $10,000 (waived if arriving from Tile 3 — Student Loan Payment)
-**Note:** Max 1 degree per player for entire game. Declare degree before entering.
+**Note:** Max 1 degree per player for entire game. Degree chosen on path completion (Tile 8 exit). Teaching Degree is available on first run.
 
 | # | Event | Fame | Happiness | HP | Cash | Salary | Other |
 |---|---|---|---|---|---|---|---|
@@ -65,7 +65,7 @@
 - Political Science
 - Art
 - Teaching Degree
-- Nursing Degree
+- Medical Degree (grants Doctor passive immediately — no career path required)
 
 ---
 

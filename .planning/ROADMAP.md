@@ -15,7 +15,7 @@
 - [x] **Phase 4: Economic Tiles** — First tile pass; superseded by Phase 5 board reset (completed 2026-04-01)
 - [x] **Phase 5: Board Reset** — Rebuild BOARD_TILES to final 40-tile design, add HP system, update win condition, stub all tile types (completed 2026-04-03)
 - [ ] **Phase 6: Hospital, Prison & Japan Trip** — HP→Hospital trigger, roll-to-leave, Doctor role, Prison escape, Japan Trip, Goomba Stomp
-- [ ] **Phase 7: Properties & Housing** — Apartment (Tile 6), House (Tile 25), buy/rent/prison-on-default mechanics (Plan 01 RED tests complete)
+- [x] **Phase 7: Properties & Housing** — Apartment (Tile 6), House (Tile 25), buy/rent/prison-on-default mechanics (completed 2026-04-03)
 - [ ] **Phase 8: University & Career Paths** — University path (7 degrees), 9 career paths with entry requirements and event tiles
 - [ ] **Phase 9: Opportunity Knocks** — Card deck system, draw mechanics, card effects, hand management
 - [ ] **Phase 10: Economy & Life Tiles** — All remaining tiles: Gym, Lottery, COVID Stimulus, Revolution, Ozempic, Yacht, Instagram, Art Gallery, Cigarette Break, Pay Taxes, Sports Betting, Nepotism, Streamer entry
@@ -117,7 +117,7 @@ Plans:
 
 **Key deliverables:**
 1. Hospital: stuck until roll ≤ 5 or pay ½ Salary; +5 HP on leaving; payment → Doctor if exists else Banker
-2. Doctor role: Nursing Degree completion sends player to Hospital; passive income from Hospital payments
+2. Doctor role: Medical Degree (University path completion) grants isDoctor immediately — no career path; passive income from Hospital payments for life
 3. Prison: escape by rolling 9/11/12 or paying bail (→ Banker); no movement/salary while imprisoned
 4. Japan Trip: +1 Happiness on land; each turn staying: +2 Happiness, pay Salary/5; roll > 8 forces leave; cannot use cards
 5. Goomba Stomp: landing on occupied tile → stomp target to Japan Trip (Tile 20); Cop variant → Prison
@@ -127,9 +127,9 @@ Plans:
 ### Success Criteria
 
 - [ ] HP ≤ 0 → immediate move to Hospital, turn pauses
-- [ ] Hospital: player must roll ≤ 5 to leave OR pay ½ Salary
-- [ ] Leaving Hospital: +5 HP; payment → Doctor (if exists) else Banker
-- [ ] Doctor passive: receives ½ Salary whenever any player pays to leave Hospital
+- [ ] Hospital: player must roll ≤ 5 on 2d6 to leave OR pay full Salary
+- [ ] Leaving Hospital: +2 HP; payment → Doctor (if present); Doctor in Hospital pays Banker instead
+- [ ] Doctor passive: receives full Salary whenever any player pays to leave Hospital
 - [ ] Prison: roll 9, 11, or 12 to escape; OR pay bail → Banker
 - [ ] Cops immune to Prison (take fine/HP loss instead)
 - [ ] Japan Trip: correct Happiness/cost/roll mechanics
@@ -172,7 +172,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — TDD Wave 0: write 8 failing tests for property buy/rent/default mechanics
 - [x] 07-02-PLAN.md — GREEN: implement handlePropertyLanding/Buy/Pass, wire dispatchTile APARTMENT/HOUSE, socket handler
-- [ ] 07-03-PLAN.md — Client UI: property event handlers in game.ts, recompile game.js
+- [x] 07-03-PLAN.md — Client UI: property event handlers in game.ts, recompile game.js
 
 ---
 
@@ -192,14 +192,14 @@ Plans:
 - [ ] Player declares degree before entering University
 - [ ] Max 1 degree per player enforced
 - [ ] Each career path enforces entry requirements (degree / cash / Nepotism)
-- [ ] Cop path: 2 tiles that send to Hospital and cancel Cop completion
-- [ ] Streamer: must roll a 1 (10,000/attempt, max 3) or use Nepotism
-- [ ] People & Culture Specialist entry: Gender Studies OR lose 20 Fame
-- [ ] Right-Wing Grifter entry: Political Science OR lose 25 Happiness
+- [ ] Cop path: tile 7 sends to Hospital and cancels Cop progress (must restart)
+- [ ] Streamer: must roll a 1 (15,000/attempt, max 2) or use Nepotism
+- [ ] People & Culture Specialist entry: Gender Studies OR pay 15,000 + lose 5 Fame OR Nepotism
+- [ ] Right-Wing Grifter entry: Political Science OR pay 25,000 + lose 5 Happiness OR Nepotism
 - [ ] Each path completion: +1 Experience card
 - [ ] Cop completion: gains Prison immunity + enhanced Goomba Stomp
 - [ ] Artist completion: gains Artist role (Art Gallery payments)
-- [ ] Doctor: Nursing Degree + path completion → sent to Hospital on grad
+- [ ] Doctor: Medical Degree (on University completion) → isDoctor = true; passive active immediately
 - [ ] Unemployed state if leaving path early
 
 ---
@@ -327,7 +327,7 @@ Plans:
 | 4. Economic Tiles (superseded) | Complete | 2026-04-01 |
 | 5. Board Reset | Complete | 2026-04-03 |
 | 6. Hospital, Prison & Japan Trip | Complete | 2026-04-03 |
-| 7. Properties & Housing | In Progress (Plan 02/03) | — |
+| 7. Properties & Housing | Complete | 2026-04-03 |
 | 8. University & Career Paths | Not started | — |
 | 9. Opportunity Knocks | Not started | — |
 | 10. Economy & Life Tiles | Not started | — |

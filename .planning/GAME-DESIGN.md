@@ -1,6 +1,6 @@
 # Modern Careers — Game Design Reference
 
-*Authoritative design doc. Last updated: 2026-04-02*
+*Authoritative design doc. Last updated: 2026-04-04*
 
 ---
 
@@ -59,7 +59,7 @@ If you end movement on a tile already occupied by another player, you **may choo
 - Political Science
 - Art
 - Teaching Degree
-- Nursing Degree
+- Medical Degree
 
 **University path tiles:**
 - Negative Happiness (breakup events)
@@ -77,9 +77,9 @@ If you end movement on a tile already occupied by another player, you **may choo
 
 - HP ≤ 0 at any time → immediately sent to Hospital (Tile 30)
 - Cannot use Experience/Opportunity cards while in Hospital
-- To leave Hospital: roll ≤ 5 on your turn, OR pay ½ Salary
-- On leaving: +5 HP
-- If Doctor exists, payment goes to Doctor; otherwise to Banker
+- To leave Hospital: roll ≤ 5 on 2d6 on your turn, OR pay full Salary
+- On leaving: +2 HP
+- Payment → Doctor (if present); if Doctor is the patient, payment goes to Banker instead
 
 ---
 
@@ -95,9 +95,9 @@ If you end movement on a tile already occupied by another player, you **may choo
 ## Special Roles
 
 ### Doctor
-- Path: Nursing Degree → complete relevant career path
-- On graduation: immediately sent to Hospital
-- Passive: whenever any player pays to leave Hospital, ½ Salary goes to Doctor (if present), else Banker
+- Granted by: Medical Degree (on University path completion) — no career path required
+- Only one Doctor per game (max 1 degree per player; Medical Degree is permanent and cannot be cleared)
+- Passive (active for the whole game): whenever any player pays to leave Hospital, that player's full Salary goes to Doctor; if Doctor is the patient, payment goes to Banker instead
 
 ### Cop (Tile 18 path)
 - Entry: wait 1 extra turn + pay 15,000, OR Nepotism referral
@@ -204,7 +204,7 @@ If you end movement on a tile already occupied by another player, you **may choo
 ### 21 — Opportunity Knocks
 
 ### 22 — People & Culture Specialist (Career Path Entry)
-- Entry: Gender Studies degree OR lose 20 Fame OR Nepotism
+- Entry: Gender Studies degree OR pay 15,000 + lose 5 Fame OR Nepotism
 - Path: negative Money, PvP tiles (reduce other players' Happiness/Fame/Money, "cancel" people)
 - Completion: exit to Opportunity Knocks (Tile 24), +1 Experience card
 
@@ -236,13 +236,13 @@ If you end movement on a tile already occupied by another player, you **may choo
 ### 29 — Opportunity Knocks
 
 ### 30 — Hospital
-- Stuck until roll ≤ 5 OR pay ½ Salary
-- On leaving: +5 HP
-- Payment → Doctor (if exists) else Banker
+- Stuck until roll ≤ 5 on 2d6 OR pay full Salary
+- On leaving: +2 HP
+- Payment → Doctor (if present); if Doctor is the patient, payment goes to Banker instead
 - Cannot use Experience/Opportunity cards here
 
 ### 31 — Right-Wing Grifter (Career Path Entry)
-- Entry: Political Science degree OR lose 25 Happiness OR Nepotism
+- Entry: Political Science degree OR pay 25,000 + lose 5 Happiness OR Nepotism
 - Path: Fame maxxing, high Fame gains
 - Completion: exit to Opportunity Knocks (Tile 32), +1 Experience card
 
@@ -270,7 +270,7 @@ If you end movement on a tile already occupied by another player, you **may choo
 - Pay 160,000 → +16 Fame
 
 ### 38 — Streamer (Career Path Entry)
-- Entry: roll a 1 (each attempt costs 10,000, max 3 per visit) OR Nepotism
+- Entry: roll a 1 (each attempt costs 15,000, max 2 per visit) OR Nepotism
 - Path: high Fame, high Money, negative Happiness, negative HP
 - Completion: exit to Opportunity Knocks (Tile 39), +1 Experience card
 
@@ -286,9 +286,9 @@ If you end movement on a tile already occupied by another player, you **may choo
 | Finance Bro | 12 | Economics or Business | 10,000 | — | Yes |
 | Supply Teacher | 15 | Teaching | 10,000 | — | Yes |
 | Cop | 18 | None | 15,000 + wait 1 turn | — | Yes |
-| People & Culture Specialist | 22 | Gender Studies | — | –20 Fame | Yes |
+| People & Culture Specialist | 22 | Gender Studies | 15,000 | –5 Fame | Yes |
 | Tech Bro | 28 | Computer Science | 20,000 | — | Yes |
-| Right-Wing Grifter | 31 | Political Science | — | –25 Happiness | Yes |
+| Right-Wing Grifter | 31 | Political Science | 25,000 | –5 Happiness | Yes |
 | Starving Artist | 34 | Art | 25,000 | — | Yes |
-| Streamer | 38 | None | 10,000/attempt (max 3, must roll 1) | — | Yes |
+| Streamer | 38 | None | 15,000/attempt (max 2, must roll 1) | — | Yes |
 | University | 9 | N/A | 10,000 | — | — |

@@ -49,14 +49,16 @@ Implement University path (7 degrees) and all 9 career paths: entry requirement 
 
 ### Degree Values
 - **D-17:** `degree` field string values updated from old design (`'compSci' | 'business' | 'healthSciences' | 'teaching'`) to new 7-degree set:
-  `'economics' | 'computerScience' | 'genderStudies' | 'politicalScience' | 'art' | 'teaching' | 'nursing'`
+  `'economics' | 'computerScience' | 'genderStudies' | 'politicalScience' | 'art' | 'teaching' | 'medical'`
 
 ### Role Unlocks
 - **D-18:** Cop path completion → `player.isCop = true` (already on Player). Grants: Prison immunity, enhanced Goomba Stomp (→ Prison instead of Japan Trip).
 - **D-19:** Starving Artist path completion → `player.isArtist = true` (new field, not yet on Player). Grants: Art Gallery/NFT tile (Tile 14) buyers pay Artist instead of Banker.
-- **D-20:** Nursing Degree + completing the relevant career path (Doctor role) → `player.isDoctor = true` (already on Player). The "relevant career path" for Doctor is not yet specified in CAREERS.md — **Claude's Discretion**: implement Doctor as granted by Nursing degree completion (University path exit with Nursing degree chosen). Full Doctor mechanic already live from Phase 6.
+- **D-20:** **Medical Degree** (renamed from Nursing Degree) → `player.isDoctor = true` immediately on degree selection (University path exit). No separate career path required. Doctor passive is active for the entire game and cannot be cleared by taking another career path (degree is permanent anyway — max 1 degree per player). Full Doctor passive mechanic (Hospital payments route to Doctor) already live from Phase 6.
 
 ### Experience Card on Completion
+- **D-22:** Teaching Degree is available on the **first** University run — no second run required. All 7 degrees are available on any University completion. (Supersedes old REQUIREMENTS.md COLL-05 which gated Teaching to a second run.)
+
 - **D-21:** Each career path completion grants +1 Experience card. Experience card system is Phase 9. For Phase 8: stub the grant as a logged no-op (`// TODO Phase 9: grant experience card`) — do not implement card hand management here.
 
 ### Claude's Discretion

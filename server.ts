@@ -37,7 +37,7 @@ export interface Player {
   isMarried: boolean;
   kids: number;
   collegeDebt: number;
-  degree: string | null;         // null | 'compSci' | 'business' | 'healthSciences' | 'teaching'
+  degree: string | null;         // null | 'economics' | 'computerScience' | 'genderStudies' | 'politicalScience' | 'art' | 'teaching' | 'medical'
   career: string | null;         // null | career path name
   hasStudentLoans: boolean;
   // Character portrait overlays
