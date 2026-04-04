@@ -505,7 +505,7 @@ function handleHospitalEscape(room: GameRoom, roomCode: string, playerId: string
     // ESCAPE
     player.inHospital = false;
     player.hp += 2;
-</invoke>    const payment = Math.floor(player.salary / 2);
+    const payment = Math.floor(player.salary / 2);
     player.money -= payment;
 
     // Route payment to Doctor if one exists, else Banker

@@ -114,8 +114,8 @@ describe('HOSP-02 escape grants +5 HP and deducts Math.floor(salary/2)', () => {
 
     Math.random = origRandom;
 
-    // +5 HP on escape
-    expect(player.hp).toBe(hpBefore + 5);
+    // +2 HP on escape (per fix(hospital) commit — fe13453)
+    expect(player.hp).toBe(hpBefore + 2);
     // Math.floor(10000 / 2) = 5000 deducted
     expect(player.money).toBe(moneyBefore - 5000);
   });
