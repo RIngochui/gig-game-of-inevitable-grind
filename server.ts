@@ -1944,17 +1944,21 @@ io.on('connection', (socket) => {
 
   // ── Debug/testing handlers (dev only) ────────────────────────────────────
 
-  socket.on('debug-goto-tile', ({ tile }: { tile: number }) => {
+  socket.on('debug-force-roll', ({ roll }: { roll: number }) => {
     const roomCode = findRoomCodeBySocketId(socket.id);
     if (!roomCode) return;
     const room = getRoom(roomCode);
     if (!room || room.gamePhase !== 'PLAYING') return;
     const player = room.players.get(socket.id);
-    if (!player) return;
-    const target = Math.max(0, Math.min(39, Number(tile)));
+    if (!player || room.turnOrder[room.currentTurnIndex] !== socket.id) return;
+    if (room.turnPhase !== 'WAITING_FOR_ROLL') return;
+    const forcedRoll = Math.max(1, Math.min(12, Number(roll)));
     const from = player.position;
-    player.position = target;
-    dispatchTile(room, roomCode, socket.id, target, 0, from);
+    const to = (from + forcedRoll) % 40;
+    room.turnPhase = 'MID_ROLL';
+    io.to(roomCode).emit('move-token', { playerId: socket.id, playerName: player.name, roll: forcedRoll, d1: forcedRoll, d2: 0, fromPosition: from, toPosition: to });
+    player.position = to;
+    dispatchTile(room, roomCode, socket.id, to, forcedRoll, from);
   });
 
   // ── Game loop socket handlers ────────────────────────────────────────────

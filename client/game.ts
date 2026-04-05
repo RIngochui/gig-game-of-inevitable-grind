@@ -4,6 +4,9 @@
 // Single shared socket for the entire page — all IIFEs use this connection
 const socket = io();
 
+// Shared between initPlayerLobby and initPlayerGame
+let _myFormula: { money: number; fame: number; happiness: number } | null = null;
+
 // Respond to server heartbeat so sockets aren't killed as zombies
 socket.on('ping', () => { socket.emit('pong'); });
 
@@ -255,6 +258,7 @@ socket.on('ping', () => { socket.emit('pong'); });
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
+    _myFormula = { money: moneyDollars, fame, happiness };
     socket.emit('submit-formula', { money: moneyPoints, fame, happiness });
   });
 
@@ -684,14 +688,11 @@ socket.on('ping', () => { socket.emit('pong'); });
   // If socket already connected (possible when initPlayerLobby ran first), grab id immediately
   if (socket.id) mySocketId = socket.id;
 
-  // ── Debug teleport panel (wired immediately, not inside gameStarted) ────
-  if (new URLSearchParams(window.location.search).get('debug') === '1') {
+  // ── Debug forced-roll panel (wired immediately) ─────────────────────────
+  const _debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+  if (_debugMode) {
     const debugPanel = document.getElementById('debug-panel');
     if (debugPanel) debugPanel.style.display = 'block';
-    document.getElementById('debug-goto-btn')?.addEventListener('click', () => {
-      const tile = parseInt((document.getElementById('debug-tile-input') as HTMLInputElement).value, 10);
-      socket.emit('debug-goto-tile', { tile });
-    });
   }
 
   // ── Formula reminder toggle ─────────────────────────────────────────────
@@ -699,6 +700,9 @@ socket.on('ping', () => { socket.emit('pong'); });
     const reveal = document.getElementById('formula-reveal')!;
     const btn = document.getElementById('formula-toggle-btn')!;
     if (reveal.style.display === 'none') {
+      if (_myFormula) {
+        reveal.textContent = `Goal: $${_myFormula.money.toLocaleString()} money · ${_myFormula.fame} fame · ${_myFormula.happiness} happiness`;
+      }
       reveal.style.display = 'block';
       btn.textContent = 'Hide your goal';
     } else {
@@ -818,15 +822,6 @@ socket.on('ping', () => { socket.emit('pong'); });
         const pathProgress = document.getElementById('path-progress');
         if (pathProgress) pathProgress.style.display = 'none';
       }
-      // Formula reminder — populate once when successFormula is received
-      if (me.successFormula) {
-        const formulaReveal = document.getElementById('formula-reveal');
-        if (formulaReveal && !formulaReveal.dataset.set) {
-          formulaReveal.dataset.set = '1';
-          formulaReveal.textContent =
-            `Goal: $${me.successFormula.money.toLocaleString()} · ${me.successFormula.fame} Fame · ${me.successFormula.happiness} Happiness`;
-        }
-      }
       // Update tile instruction from current position
       if (me.position !== undefined && boardTilesData.length > 0) {
         const tile = boardTilesData[me.position];
@@ -858,7 +853,12 @@ socket.on('ping', () => { socket.emit('pong'); });
     rollBtn.style.opacity = '0.35';
     rollBtn.style.cursor  = 'not-allowed';
     rollBtn.textContent   = 'Rolling...';
-    socket.emit('roll-dice'); // server responds with move-token + nextTurn
+    if (_debugMode) {
+      const forcedRoll = parseInt((document.getElementById('debug-tile-input') as HTMLInputElement)?.value || '6', 10);
+      socket.emit('debug-force-roll', { roll: forcedRoll });
+    } else {
+      socket.emit('roll-dice'); // server responds with move-token + nextTurn
+    }
 
     // Restore text after brief delay (server confirms via move-token)
     setTimeout(() => { rollBtn.textContent = 'Roll Dice'; }, 1000);
@@ -1150,6 +1150,8 @@ socket.on('ping', () => { socket.emit('pong'); });
     if (data.playerId === mySocketId) {
       const tileNameEl2 = document.getElementById('tile-name-display');
       const tileInstrEl2 = document.getElementById('tile-instruction-text');
+      const tilePanel = document.getElementById('active-tile-instruction');
+      if (tilePanel) tilePanel.style.display = 'block';
       if (tileNameEl2) tileNameEl2.textContent = `${data.displayName} -- Tile ${data.tileIndex + 1}`;
       if (tileInstrEl2) {
         let html = data.eventText;
@@ -1202,6 +1204,8 @@ socket.on('ping', () => { socket.emit('pong'); });
 
   socket.on('pathComplete', (data: any) => {
     if (data.playerId === mySocketId) {
+      const tilePanel = document.getElementById('active-tile-instruction');
+      if (tilePanel) tilePanel.style.display = 'block';
       const tileNameEl2 = document.getElementById('tile-name-display');
       const tileInstrEl2 = document.getElementById('tile-instruction-text');
       if (tileNameEl2) tileNameEl2.textContent = `${data.displayName} Complete!`;
