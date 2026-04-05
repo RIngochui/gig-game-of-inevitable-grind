@@ -269,6 +269,47 @@
         cursor:pointer;
       ">Pass</button>
     </div>
+
+    <!-- Phase 8: Career Entry Prompt -->
+    <div id="career-choice" style="display:none; padding:16px; margin-top:8px; background:#16213e; border:2px solid #f0c040; border-radius:8px; text-align:center;">
+      <div id="career-name" style="font-size:18px; font-weight:600; color:#f0c040; margin-bottom:8px;"></div>
+      <div id="career-req" style="font-size:14px; color:#aaa; margin-bottom:4px;"></div>
+      <div id="career-fee" style="font-size:14px; color:#eee; font-family:monospace; margin-bottom:12px;"></div>
+      <div id="career-buttons" style="display:flex; gap:8px; justify-content:center;">
+        <button id="career-enter-btn" style="padding:12px 24px; font-size:16px; font-weight:600; background:#4ade80; color:#1a1a2e; border:none; border-radius:8px; cursor:pointer;">Enter</button>
+        <button id="career-pass-btn" style="padding:12px 24px; font-size:16px; font-weight:600; background:#f87171; color:#1a1a2e; border:none; border-radius:8px; cursor:pointer;">Pass</button>
+      </div>
+    </div>
+
+    <!-- Phase 8: Degree Selection Prompt -->
+    <div id="degree-choice" style="display:none; padding:16px; margin-top:12px; background:#16213e; border:2px solid #f0c040; border-radius:8px; text-align:center;">
+      <div style="font-size:18px; font-weight:600; color:#f0c040; margin-bottom:12px;">Choose Your Degree</div>
+      <div style="font-size:14px; color:#aaa; margin-bottom:16px;">You graduated as valedictorian! Pick one degree.</div>
+      <div id="degree-buttons" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+
+    <!-- Phase 8: Streamer Roll Prompt -->
+    <div id="streamer-roll" style="display:none; padding:16px; margin-top:12px; background:#16213e; border:2px solid #f0c040; border-radius:8px; text-align:center;">
+      <div style="font-size:18px; font-weight:600; color:#f0c040; margin-bottom:8px;">Streamer Entry</div>
+      <div style="font-size:14px; color:#aaa; margin-bottom:12px;">Roll a 1 to enter ($15,000 per attempt)</div>
+      <div id="streamer-attempt" style="font-size:14px; color:#f0c040; font-family:monospace; margin-bottom:12px;"></div>
+      <div id="streamer-result" style="font-size:16px; font-weight:600; margin-top:8px; display:none;"></div>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+        <button id="streamer-roll-btn" style="padding:12px 24px; font-size:16px; font-weight:600; background:#4ade80; color:#1a1a2e; border:none; border-radius:8px; cursor:pointer;">Roll</button>
+        <button id="streamer-pass-btn" style="padding:12px 24px; font-size:16px; font-weight:600; background:#f87171; color:#1a1a2e; border:none; border-radius:8px; cursor:pointer;">Pass</button>
+      </div>
+    </div>
+
+    <!-- Phase 8: Path Progress Indicator -->
+    <div id="path-progress" style="display:none; padding:8px 16px; background:#16213e; border-radius:8px; margin-top:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span id="path-name" style="font-size:14px; font-weight:600; color:#f0c040;"></span>
+        <span id="path-fraction" style="font-size:14px; font-weight:400; color:#aaa; font-family:monospace;"></span>
+      </div>
+      <div style="height:6px; background:#1a1a2e; border-radius:3px; margin-top:8px; overflow:hidden;">
+        <div id="path-bar" style="height:100%; background:#f0c040; border-radius:3px; transition:width 0.3s ease-out; width:0%;"></div>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

@@ -337,7 +337,7 @@ socket.on('ping', () => { socket.emit('pong'); });
     SPORTS_BETTING: 'SPORTS', CIGARETTE_BREAK: 'CIGS', UNIVERSITY: 'UNI',
     PRISON: 'PRISON', FINANCE_BRO: 'FINANCE', ART_GALLERY: 'ART',
     SUPPLY_TEACHER: 'TEACHER', GYM_MEMBERSHIP: 'GYM', COP: 'COP',
-    LOTTERY: 'LOTTERY', JAPAN_TRIP: 'JAPAN', DEI_OFFICER: 'DEI',
+    LOTTERY: 'LOTTERY', JAPAN_TRIP: 'JAPAN', DEI_OFFICER: 'DEI', PEOPLE_AND_CULTURE: 'P&C',
     REVOLUTION: 'REVOLTN', HOUSE: 'HOUSE', NEPOTISM: 'NEPT',
     COVID_STIMULUS: 'COVID', TECH_BRO: 'TECH', HOSPITAL: 'HOSP',
     RIGHT_WING_GRIFTER: 'GRIFTER', OZEMPIC: 'OZEMPIC',
@@ -608,6 +608,39 @@ socket.on('ping', () => { socket.emit('pong'); });
     addTurnHistory(`${visitorName} couldn't pay rent — all cash to ${ownerName}, sent to Prison`);
   });
 
+  // ── Phase 8: Career/University event handlers (host screen) ──────────
+
+  const DEGREE_DISPLAY_HOST: Record<string, string> = {
+    economics: 'Economics', computerScience: 'Computer Science',
+    genderStudies: 'Gender Studies', politicalScience: 'Political Science',
+    art: 'Art', teaching: 'Teaching', medical: 'Medical',
+  };
+
+  socket.on('careerEntered', (data: any) => {
+    addTurnHistory(`${data.playerName} entered ${data.displayName}`);
+  });
+
+  socket.on('pathTileEvent', (data: any) => {
+    const shortEvent = data.eventText.length > 40 ? data.eventText.substring(0, 37) + '...' : data.eventText;
+    addTurnHistory(`${data.playerName} ${data.displayName} T${data.tileIndex + 1}: ${shortEvent}`);
+  });
+
+  socket.on('pathComplete', (data: any) => {
+    let msg = `${data.playerName} completed ${data.displayName}!`;
+    if (data.roleUnlock) msg += ` (${data.roleUnlock === 'isCop' ? 'Cop' : 'Artist'} role unlocked)`;
+    addTurnHistory(msg);
+  });
+
+  socket.on('degreeChosen', (data: any) => {
+    let msg = `${data.playerName} chose ${DEGREE_DISPLAY_HOST[data.degree] || data.degree} degree`;
+    if (data.degree === 'medical') msg = `${data.playerName} earned Medical degree! Sent to Hospital for residency.`;
+    addTurnHistory(msg);
+  });
+
+  socket.on('tile-student-loan-redirect', (data: any) => {
+    addTurnHistory(`${data.playerName} redirected to University (loan payment)`);
+  });
+
 })();
 
 // ── Player Game Logic ──────────────────────────────────────────────────────
@@ -636,6 +669,17 @@ socket.on('ping', () => { socket.emit('pong'); });
   let currentTurnPhase: string = 'WAITING_FOR_ROLL';
   // Board tile data received on gameStarted — used to look up tile info by position
   let boardTilesData: Array<{type: string; name: string; description: string}> = [];
+
+  // Phase 8: Degree display names
+  const DEGREE_DISPLAY: Record<string, string> = {
+    economics: 'Economics',
+    computerScience: 'Computer Science',
+    genderStudies: 'Gender Studies',
+    politicalScience: 'Political Science',
+    art: 'Art',
+    teaching: 'Teaching',
+    medical: 'Medical',
+  };
 
   // If socket already connected (possible when initPlayerLobby ran first), grab id immediately
   if (socket.id) mySocketId = socket.id;
@@ -736,8 +780,21 @@ socket.on('ping', () => { socket.emit('pong'); });
       if (statFameEl)   statFameEl.textContent    = String(me.fame ?? 0);
       if (statHapEl)    statHapEl.textContent     = String(me.happiness ?? 0);
       if (statHpEl)     statHpEl.textContent      = String(me.hp ?? 10);
-      if (statDegreeEl) statDegreeEl.textContent  = me.degree ?? 'None';
       if (statCareerEl) statCareerEl.textContent  = me.career ?? 'None';
+      // Phase 8: degree display name + path progress hide when not in path
+      if (statDegreeEl) {
+        if (me.degree) {
+          statDegreeEl.textContent = DEGREE_DISPLAY[me.degree] || me.degree;
+          statDegreeEl.style.color = '#f0c040';
+        } else {
+          statDegreeEl.textContent = 'None';
+          statDegreeEl.style.color = '';
+        }
+      }
+      if (!me.inPath) {
+        const pathProgress = document.getElementById('path-progress');
+        if (pathProgress) pathProgress.style.display = 'none';
+      }
       // Update tile instruction from current position
       if (me.position !== undefined && boardTilesData.length > 0) {
         const tile = boardTilesData[me.position];
@@ -927,6 +984,251 @@ socket.on('ping', () => { socket.emit('pong'); });
 
   socket.on('property-default', ({ visitorName, ownerName, cashTransferred }: { tileIndex: number; visitorName: string; ownerName: string; cashTransferred: number }) => {
     if (lastRollDisplay) lastRollDisplay.textContent = `${visitorName} couldn't pay rent — all $${cashTransferred.toLocaleString()} to ${ownerName}, sent to Prison`;
+  });
+
+  // ── Phase 8: Career Entry Prompt ─────────────────────────────────────
+
+  let pendingCareer: string | null = null;
+
+  socket.on('careerEntryPrompt', (data: any) => {
+    const careerChoice = document.getElementById('career-choice')!;
+    const careerName = document.getElementById('career-name')!;
+    const careerReq = document.getElementById('career-req')!;
+    const careerFee = document.getElementById('career-fee')!;
+    const careerButtons = document.getElementById('career-buttons')!;
+    const enterBtn = document.getElementById('career-enter-btn')!;
+
+    careerName.textContent = data.displayName;
+    careerReq.textContent = data.requirements;
+    careerFee.textContent = data.fee > 0 ? `Entry fee: $${data.fee.toLocaleString()}` : 'Free entry';
+
+    if (data.meetsRequirements) {
+      careerButtons.style.display = 'flex';
+      enterBtn.textContent = `Enter ${data.displayName}`;
+      pendingCareer = data.career;
+    } else {
+      careerButtons.style.display = 'none';
+      careerReq.style.color = '#f87171';
+      setTimeout(() => {
+        careerChoice.style.display = 'none';
+        careerReq.style.color = '#aaa';
+      }, 2000);
+    }
+    careerChoice.style.display = 'block';
+  });
+
+  document.getElementById('career-enter-btn')?.addEventListener('click', () => {
+    if (pendingCareer) {
+      socket.emit('career-enter', { career: pendingCareer });
+      document.getElementById('career-choice')!.style.display = 'none';
+      pendingCareer = null;
+    }
+  });
+
+  document.getElementById('career-pass-btn')?.addEventListener('click', () => {
+    socket.emit('career-pass');
+    document.getElementById('career-choice')!.style.display = 'none';
+    pendingCareer = null;
+  });
+
+  // ── Phase 8: Degree Selection Prompt ────────────────────────────────
+
+  socket.on('degreeSelectionPrompt', (data: any) => {
+    if (data.hasDegree) return;
+    const degreeChoice = document.getElementById('degree-choice')!;
+    const degreeButtons = document.getElementById('degree-buttons')!;
+    degreeButtons.innerHTML = '';
+
+    for (const deg of data.availableDegrees) {
+      const btn = document.createElement('button');
+      btn.textContent = DEGREE_DISPLAY[deg] || deg;
+      btn.style.cssText = 'padding:12px 16px; font-size:16px; font-weight:400; background:#1a1a2e; color:#eee; border:1px solid #333; border-radius:8px; cursor:pointer; text-align:left;';
+      if (deg === 'medical') {
+        const sub = document.createElement('div');
+        sub.textContent = '(Doctor -- sent to Hospital)';
+        sub.style.cssText = 'font-size:12px; color:#aaa; margin-top:4px;';
+        btn.appendChild(sub);
+      }
+      btn.addEventListener('mouseenter', () => { btn.style.borderColor = '#f0c040'; });
+      btn.addEventListener('mouseleave', () => { btn.style.borderColor = '#333'; });
+      btn.addEventListener('click', () => {
+        socket.emit('choose-degree', { degree: deg });
+        degreeChoice.style.display = 'none';
+      });
+      degreeButtons.appendChild(btn);
+    }
+    degreeChoice.style.display = 'block';
+  });
+
+  // ── Phase 8: Streamer Roll Prompt ────────────────────────────────────
+
+  socket.on('streamerEntryPrompt', (data: any) => {
+    const streamerRoll = document.getElementById('streamer-roll')!;
+    const attemptEl = document.getElementById('streamer-attempt')!;
+    const resultEl = document.getElementById('streamer-result')!;
+    const rollBtn2 = document.getElementById('streamer-roll-btn')!;
+    attemptEl.textContent = `Attempt 1/${data.attemptsRemaining}`;
+    resultEl.style.display = 'none';
+    rollBtn2.style.opacity = '1';
+    (rollBtn2 as HTMLButtonElement).disabled = false;
+    streamerRoll.style.display = 'block';
+  });
+
+  document.getElementById('streamer-roll-btn')?.addEventListener('click', () => {
+    socket.emit('streamer-roll-attempt');
+  });
+
+  document.getElementById('streamer-pass-btn')?.addEventListener('click', () => {
+    socket.emit('career-pass');
+    document.getElementById('streamer-roll')!.style.display = 'none';
+  });
+
+  socket.on('streamerRollResult', (data: any) => {
+    const resultEl = document.getElementById('streamer-result')!;
+    const rollBtn2 = document.getElementById('streamer-roll-btn')!;
+    const attemptEl = document.getElementById('streamer-attempt')!;
+    resultEl.style.display = 'block';
+
+    if (data.success) {
+      resultEl.textContent = "Rolled a 1 -- you're in!";
+      resultEl.style.color = '#4ade80';
+      setTimeout(() => {
+        document.getElementById('streamer-roll')!.style.display = 'none';
+      }, 1500);
+    } else {
+      resultEl.textContent = `Rolled a ${data.roll} -- entry failed.`;
+      resultEl.style.color = '#f87171';
+      if (data.attemptsRemaining > 0) {
+        attemptEl.textContent = `Attempt ${3 - data.attemptsRemaining}/${2}`;
+        resultEl.textContent += ' 1 attempt remaining.';
+      } else {
+        resultEl.textContent += ' No attempts remaining.';
+        (rollBtn2 as HTMLButtonElement).disabled = true;
+        rollBtn2.style.opacity = '0.5';
+        setTimeout(() => {
+          document.getElementById('streamer-roll')!.style.display = 'none';
+        }, 2000);
+      }
+    }
+  });
+
+  // ── Phase 8: Path Tile Event ─────────────────────────────────────────
+
+  socket.on('pathTileEvent', (data: any) => {
+    if (data.playerId === mySocketId) {
+      const tileNameEl2 = document.getElementById('tile-name-display');
+      const tileInstrEl2 = document.getElementById('tile-instruction-text');
+      if (tileNameEl2) tileNameEl2.textContent = `${data.displayName} -- Tile ${data.tileIndex + 1}`;
+      if (tileInstrEl2) {
+        let html = data.eventText;
+        const sc = data.statChanges;
+        const badges: string[] = [];
+        if (sc.cash > 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #4ade80;color:#4ade80;">+$${sc.cash.toLocaleString()}</span>`);
+        if (sc.cash < 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f87171;color:#f87171;">-$${Math.abs(sc.cash).toLocaleString()}</span>`);
+        if (sc.fame > 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f0c040;color:#f0c040;">+${sc.fame} Fame</span>`);
+        if (sc.fame < 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f87171;color:#f87171;">${sc.fame} Fame</span>`);
+        if (sc.happiness > 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #4ade80;color:#4ade80;">+${sc.happiness} Happiness</span>`);
+        if (sc.happiness < 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f87171;color:#f87171;">${sc.happiness} Happiness</span>`);
+        if (sc.hp > 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #4ade80;color:#4ade80;">+${sc.hp} HP</span>`);
+        if (sc.hp < 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f87171;color:#f87171;">${sc.hp} HP</span>`);
+        if (sc.salary > 0) badges.push(`<span style="display:inline-block;padding:4px 8px;margin:2px;border-radius:4px;font-size:12px;font-weight:600;font-family:monospace;background:#1a1a2e;border:1px solid #f0c040;color:#f0c040;">+$${sc.salary.toLocaleString()} Salary</span>`);
+        if (badges.length > 0) html += '<div style="margin-top:8px;">' + badges.join('') + '</div>';
+        if (data.specialEffect) html += `<div style="color:#f87171;margin-top:4px;font-weight:600;">${data.specialEffect === 'HOSPITAL' ? 'Sent to Hospital' : data.specialEffect === 'PRISON' ? 'Sent to Prison' : data.specialEffect}</div>`;
+        tileInstrEl2.innerHTML = html;
+      }
+      const pathProgress = document.getElementById('path-progress');
+      const pathNameEl = document.getElementById('path-name');
+      const pathFraction = document.getElementById('path-fraction');
+      const pathBar = document.getElementById('path-bar');
+      if (pathProgress && pathNameEl && pathFraction && pathBar) {
+        pathProgress.style.display = 'block';
+        pathNameEl.textContent = data.displayName;
+        pathFraction.textContent = `Tile ${data.tileIndex + 1} of ${data.totalTiles}`;
+        pathBar.style.width = `${((data.tileIndex + 1) / data.totalTiles) * 100}%`;
+      }
+    }
+  });
+
+  // ── Phase 8: Career Entered ──────────────────────────────────────────
+
+  socket.on('careerEntered', (data: any) => {
+    if (data.playerId === mySocketId) {
+      const pathProgress = document.getElementById('path-progress');
+      const pathNameEl = document.getElementById('path-name');
+      const pathFraction = document.getElementById('path-fraction');
+      const pathBar = document.getElementById('path-bar');
+      if (pathProgress && pathNameEl && pathFraction && pathBar) {
+        pathProgress.style.display = 'block';
+        pathNameEl.textContent = data.displayName;
+        pathFraction.textContent = 'Tile 0 of ?';
+        pathBar.style.width = '0%';
+      }
+    }
+  });
+
+  // ── Phase 8: Path Complete ───────────────────────────────────────────
+
+  socket.on('pathComplete', (data: any) => {
+    if (data.playerId === mySocketId) {
+      const tileNameEl2 = document.getElementById('tile-name-display');
+      const tileInstrEl2 = document.getElementById('tile-instruction-text');
+      if (tileNameEl2) tileNameEl2.textContent = `${data.displayName} Complete!`;
+      if (tileInstrEl2) {
+        let html = `You finished the ${data.displayName} path.`;
+        if (data.roleUnlock) html += `<div style="color:#f0c040;font-weight:600;margin-top:8px;">${data.roleUnlock === 'isCop' ? 'Cop role unlocked!' : 'Artist role unlocked!'}</div>`;
+        html += '<div style="color:#aaa;font-size:12px;margin-top:4px;">Experience card earned. (Coming soon)</div>';
+        tileInstrEl2.innerHTML = html;
+      }
+      const pathProgress = document.getElementById('path-progress');
+      if (pathProgress) pathProgress.style.display = 'none';
+    }
+  });
+
+  // ── Phase 8: Degree Chosen ───────────────────────────────────────────
+
+  socket.on('degreeChosen', (data: any) => {
+    if (data.playerId === mySocketId) {
+      const degreeEl = document.getElementById('stat-degree');
+      if (degreeEl) {
+        degreeEl.textContent = DEGREE_DISPLAY[data.degree] || data.degree;
+        degreeEl.style.color = '#f0c040';
+      }
+    }
+  });
+
+  // ── Phase 8: Cop Wait ────────────────────────────────────────────────
+
+  socket.on('copWaitStarted', (_data: any) => {
+    const turnInd = document.getElementById('turn-indicator');
+    if (turnInd) {
+      turnInd.textContent = 'Cop training: skip 1 turn before entering';
+      turnInd.style.color = '#f0c040';
+    }
+  });
+
+  socket.on('copWaitComplete', (_data: any) => {
+    const turnInd = document.getElementById('turn-indicator');
+    if (turnInd) {
+      turnInd.textContent = 'Training complete. Entering Cop path.';
+      turnInd.style.color = '#4ade80';
+    }
+  });
+
+  socket.on('copWaiting', (data: any) => {
+    const turnInd = document.getElementById('turn-indicator');
+    if (turnInd) {
+      turnInd.textContent = `Waiting at Police Academy... (${data.turnsRemaining} turn remaining)`;
+      turnInd.style.color = '#f0c040';
+    }
+  });
+
+  // ── Phase 8: Tile 3 Redirect ─────────────────────────────────────────
+
+  socket.on('tile-student-loan-redirect', (_data: any) => {
+    const tileNameEl2 = document.getElementById('tile-name-display');
+    const tileInstrEl2 = document.getElementById('tile-instruction-text');
+    if (tileNameEl2) tileNameEl2.textContent = 'Student Loan Payment';
+    if (tileInstrEl2) tileInstrEl2.textContent = 'Redirected to University. Entry fee waived. -$15,000.';
   });
 
 })();
