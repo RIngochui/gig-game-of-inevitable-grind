@@ -3,35 +3,35 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_plan: 1
-status: Executing Phase 08
+status: Executing Phase 06
 stopped_at: Completed 08-university-career-paths 08-01-PLAN.md (TDD Wave 0 stubs + build corruption fix)
-last_updated: "2026-04-04T23:43:00Z"
+last_updated: "2026-04-04T23:44:43.599Z"
 progress:
-  total_phases: 13
-  completed_phases: 7
-  total_plans: 29
-  completed_plans: 25
-  percent: 100
+  total_phases: 12
+  completed_phases: 5
+  total_plans: 22
+  completed_plans: 21
+  percent: 95
 ---
 
 # Project State: Modern Careers
 
 **Last updated:** 2026-04-03 after completing Phase 6 Plan 01 (Wave 0 test scaffolding: hospital, prison, japan-trip, goomba-stomp, doctor-role)
 
-**Progress:** [██████████] 100%
+**Progress:** [██████████] 95%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Fun, chaotic, real-time multiplayer party experience playable in a browser — host on big screen, players on phones, no install required.
-**Current focus:** Phase 08 — university-career-paths
+**Current focus:** Phase 06 — hospital-prison-japan-trip (In Progress — Plans 01-02 complete)
 
 ## Current Status
 
-**Phase:** 8
+**Phase:** 6
 **Current Plan:** 1
-**Stopped at:** Phase 8 UI-SPEC approved
+**Stopped at:** Completed 08-university-career-paths 08-01-PLAN.md (TDD Wave 0 stubs + build corruption fix)
 **Next action:** Execute Plan 03 — add client-side event handlers for Phase 6 events in game.ts, recompile game.js
 
 ## Phase Progress
@@ -88,8 +88,6 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | 2026-04-03 | 2d6 >= 9 threshold for Japan Trip forced-leave (per RESEARCH.md recommendation) | Plan 06-01 |
 | 2026-04-03 | Prison bail = $5,000 flat (per RESEARCH.md recommendation) | Plan 06-01 |
 | 2026-04-03 | PRISON-01 tile sanity check stays GREEN in Wave 0 (existing board already has PRISON at tile 10) | Plan 06-01 |
-| 2026-04-04 | Synced server.ts from main branch before fixing </invoke> corruption — worktree had stale pre-Phase-7 version | Plan 08-01 |
-| 2026-04-04 | tile-22 stub uses real BOARD_TILES[22].type assertion (PEOPLE_AND_CULTURE) — RED because DEI_OFFICER rename scheduled for Plan 03 | Plan 08-01 |
 
 ## Performance Metrics
 
@@ -110,4 +108,4 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 | Phase 05-board-reset P03 | 2min | 2 tasks | 3 files |
 | Phase 06-hospital-prison-japan-trip P01 | 5min | 2 tasks | 5 files |
 | Phase 06-hospital-prison-japan-trip P02 | 5min | 3 tasks | 1 files |
-| Phase 07-properties-housing P03 | 3min | 3 tasks | 3 files |
+| Phase 08-university-career-paths P01 | 15min | 2 tasks | 6 files |

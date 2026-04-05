@@ -63,37 +63,36 @@
 
 ### Properties
 
-- [x] **PROP-01**: **Apartment (Tile 6)** — buy for 50,000 (player choice prompt when landing on unowned tile); rent = 25% of visitor's Salary paid to owner; only one owner per property; owner landing on own tile pays nothing
-- [x] **PROP-02**: **House (Tile 25)** — buy for 100,000 (player choice prompt when landing on unowned tile); rent = 50% of visitor's Salary paid to owner; only one owner per property; owner landing on own tile pays nothing
-- [x] **PROP-03**: Visitor who can't afford rent: give all cash to owner, then sent to Prison (independent property-default mechanic — not shared with PRISON path)
-- [x] **PROP-04**: Host board tile label updates to "[PlayerName]'s Apartment" / "[PlayerName]'s House" upon purchase; reverts to default name if ownership mechanic ever clears (future-proofing)
+- [ ] **PROP-01**: **Apartment Building** — cost 2× starting money; first player who can afford it buys automatically; subsequent players pay 25% of current money as rent to owner; landlord top hat added to owner character
+- [ ] **PROP-02**: **House** — cost 4× starting money; first player who can afford it buys automatically; subsequent players pay 33% of current money as rent to owner
+- [ ] **PROP-03**: Players who can't afford to buy leave tile unowned; already-owned tiles always charge rent (negative money allowed)
 
 ### Prison
 
 - [x] **PRISON-01**: Dedicated Prison tile on the board
 - [x] **PRISON-02**: Imprisoned players skip movement turns but still have drains and passive income applied
 - [x] **PRISON-03**: Imprisoned players can play Luck cards on their turn
-- [x] **PRISON-04**: Escape option A: roll 2d6 — escape on 9, 11, or 12, move to Prison Exit tile
+- [x] **PRISON-04**: Escape option A: roll 1 die — roll a 1 to be freed, move to Prison Exit tile
 - [x] **PRISON-05**: Escape option B: pay $5,000 fine, immediately move to Prison Exit tile
 - [x] **PRISON-06**: Host screen shows prison icon next to imprisoned players and turns served
 
 ### Goomba Stomp
 
-- [x] **STOMP-01**: If a player ends their move on an occupied tile, they may optionally Goomba Stomp: non-Cop sends target to Payday (Tile 0) –1 HP, skipNextPayday=true; Cop sends target to Prison (Tile 10) –2 HP. Stomping is a player choice — declining has no effect.
+- [x] **STOMP-01**: If a player ends their move on an occupied tile, all players already there are sent to Prison immediately
 - [x] **STOMP-02**: Stomping player stays on the tile; applies on main loop and inside all career/college paths
 
 ### College Path
 
-- [ ] **COLL-01**: College entrance tile lets player enter the College path
+- [x] **COLL-01**: College entrance tile lets player enter the College path
 - [ ] **COLL-02**: Each turn inside college costs tuition money; if insufficient, a loan is automatically taken and tracked
-- [ ] **COLL-03**: On exit, player chooses one degree: Comp Sci (blue cap), Business (green cap), Health Sciences (red cap)
+- [x] **COLL-03**: On exit, player chooses one degree: Comp Sci (blue cap), Business (green cap), Health Sciences (red cap)
 - [ ] **COLL-04**: Player can exit early with no degree (undeclared)
 - [ ] **COLL-05**: Second college run earns Teaching degree only (purple cap)
-- [ ] **COLL-06**: Graduation cap layer added to character on degree earned
+- [x] **COLL-06**: Graduation cap layer added to character on degree earned
 
 ### Career Paths
 
-- [ ] **CAREER-01**: All career paths branch off the main loop; roll 1 die per space inside
+- [x] **CAREER-01**: All career paths branch off the main loop; roll 1 die per space inside
 - [ ] **CAREER-02**: **Tech Bro** — requires Comp Sci degree; high 💰 rewards; 10+ event cards
 - [ ] **CAREER-03**: **Finance Bro** — requires Business degree; high 💰 + some ⭐; 10+ event cards
 - [ ] **CAREER-04**: **Precarious Healthcare Hero** — requires Health Sciences degree; low 💰 + some ⭐/❤️; 10+ event cards
@@ -200,8 +199,7 @@
 | LOOP-01–07 | Phase 3 | Pending |
 | ECON-01–10 | Phase 4 | Pending |
 | LIFE-01–11 | Phase 5 | Pending |
-| PROP-01–03 | Phase 7 | Complete (07-02) |
-| PROP-04 | Phase 7 | Pending |
+| PROP-01–03 | Phase 6 | Pending |
 | PRISON-01–06 | Phase 6 | Pending |
 | STOMP-01–02 | Phase 6 | Pending |
 | COLL-01–06 | Phase 7 | Pending |
