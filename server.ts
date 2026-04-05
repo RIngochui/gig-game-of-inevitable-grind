@@ -1942,6 +1942,21 @@ io.on('connection', (socket) => {
     console.log(`[start-game] ${roomCode} started. Order: ${turnOrder.map(id => room.players.get(id)!.name).join(' => ')}`);
   });
 
+  // ── Debug/testing handlers (dev only) ────────────────────────────────────
+
+  socket.on('debug-goto-tile', ({ tile }: { tile: number }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return;
+    const room = getRoom(roomCode);
+    if (!room || room.gamePhase !== 'PLAYING') return;
+    const player = room.players.get(socket.id);
+    if (!player) return;
+    const target = Math.max(0, Math.min(39, Number(tile)));
+    const from = player.position;
+    player.position = target;
+    dispatchTile(room, roomCode, socket.id, target, 0, from);
+  });
+
   // ── Game loop socket handlers ────────────────────────────────────────────
 
   socket.on('roll-dice', () => {

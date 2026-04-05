@@ -731,6 +731,16 @@ socket.on('ping', () => { socket.emit('pong'); });
     if (waitingSection) waitingSection.style.display = 'none';
     if (gameSection)    gameSection.style.display    = 'block';
 
+    // Debug panel: show when ?debug=1
+    if (new URLSearchParams(window.location.search).get('debug') === '1') {
+      const debugPanel = document.getElementById('debug-panel');
+      if (debugPanel) debugPanel.style.display = 'block';
+      document.getElementById('debug-goto-btn')?.addEventListener('click', () => {
+        const tile = parseInt((document.getElementById('debug-tile-input') as HTMLInputElement).value, 10);
+        socket.emit('debug-goto-tile', { tile });
+      });
+    }
+
     if (boardTiles) boardTilesData = boardTiles;
     currentTurnPlayerId = currentPlayerSocketId;
     currentTurnPhase    = 'WAITING_FOR_ROLL';

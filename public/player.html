@@ -162,6 +162,18 @@
 
   <!-- GAME SECTION — Phase 3+ -->
   <div id="game-section" style="display:none">
+    <!-- Debug panel — visible only when ?debug=1 in URL -->
+    <div id="debug-panel" style="display:none; margin-bottom:12px; padding:8px 12px; background:#1a0a0a; border:1px dashed #f87171; border-radius:6px; font-size:13px; color:#f87171;">
+      <strong>DEBUG</strong> &nbsp;
+      Goto tile:
+      <input id="debug-tile-input" type="number" min="0" max="39" value="4"
+             style="width:48px; background:#1a1a2e; color:#eee; border:1px solid #555; border-radius:4px; padding:2px 4px; font-family:monospace;">
+      <button id="debug-goto-btn"
+              style="padding:2px 10px; background:#f87171; color:#1a1a2e; border:none; border-radius:4px; cursor:pointer; font-weight:600;">Go</button>
+      &nbsp;
+      <span style="color:#555; font-size:11px;">4=McD · 9=Uni · 12=Fin · 15=Teacher · 18=Cop · 22=P&C · 28=Tech · 31=Grifter · 34=Artist · 38=Stream</span>
+    </div>
+
     <div id="turn-indicator" style="text-align:center;font-size:1.125rem;font-weight:600;color:#aaa;margin-bottom:16px;">
       Waiting for game...
     </div>
