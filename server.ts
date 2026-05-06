@@ -51,6 +51,8 @@ export interface Player {
   hasSubmittedFormula: boolean;
   // Cards in hand
   luckCards: string[];
+  heldOpportunityCards: OpportunityCard[];
+  pendingGoldenEntry: boolean;
   // Phase 6 location flags
   inHospital: boolean;
   inJapan: boolean;
@@ -108,6 +110,13 @@ export interface SharedResources {
   lotteryPool: number;
 }
 
+export interface OpportunityCard {
+  id: string;
+  type: 'regular' | 'golden' | 'special';
+  career: string | null; // career key (e.g. 'FINANCE_BRO') — null for 'special'
+  displayName: string;   // human-readable career name, or 'Your Choice' for special
+}
+
 export interface GameRoom {
   id: string;
   hostSocketId: string;
@@ -124,6 +133,7 @@ export interface GameRoom {
   startedAt: number | null;
   propertyOwners: Map<number, string>;
   pendingStompDispatch: { roll: number; fromPosition: number; tileIndex: number } | null;
+  opportunityDeck: OpportunityCard[];
 }
 
 export interface RateLimit {
@@ -220,11 +230,49 @@ const TURN_PHASES = {
   WAITING_FOR_STOMP_DECISION: 'WAITING_FOR_STOMP_DECISION',
   WAITING_FOR_CAREER_DECISION: 'WAITING_FOR_CAREER_DECISION',
   WAITING_FOR_STREAMER_ROLL: 'WAITING_FOR_STREAMER_ROLL',
-  WAITING_FOR_DEGREE_CHOICE: 'WAITING_FOR_DEGREE_CHOICE'
+  WAITING_FOR_DEGREE_CHOICE: 'WAITING_FOR_DEGREE_CHOICE',
+  WAITING_FOR_OPPORTUNITY_DECISION: 'WAITING_FOR_OPPORTUNITY_DECISION',
+  WAITING_FOR_SPECIAL_CARD_CHOICE: 'WAITING_FOR_SPECIAL_CARD_CHOICE',
+  WAITING_FOR_SPORTS_BET: 'WAITING_FOR_SPORTS_BET'
 } as const;
 
 const STARTING_MONEY = 10000;
 export const STARTING_HP = 10;
+
+// ── Opportunity Cards ──────────────────────────────────────────────────────
+// Careers eligible for opportunity cards (all 10 paths)
+const OPP_CAREERS: Array<{ key: string; name: string }> = [
+  { key: 'MCDONALDS',          name: "McDonald's" },
+  { key: 'UNIVERSITY',         name: 'University' },
+  { key: 'FINANCE_BRO',        name: 'Finance Bro' },
+  { key: 'SUPPLY_TEACHER',     name: 'Supply Teacher' },
+  { key: 'COP',                name: 'Cop' },
+  { key: 'PEOPLE_AND_CULTURE', name: 'People & Culture' },
+  { key: 'TECH_BRO',           name: 'Tech Bro' },
+  { key: 'RIGHT_WING_GRIFTER', name: 'Right-Wing Grifter' },
+  { key: 'STARVING_ARTIST',    name: 'Starving Artist' },
+  { key: 'STREAMER',           name: 'Streamer' },
+];
+
+// Build deck: 2 regular + 1 golden per career + 2 special = 32 cards
+export const OPPORTUNITY_CARDS: OpportunityCard[] = [
+  ...OPP_CAREERS.flatMap(c => [
+    { id: `reg-${c.key}-1`, type: 'regular' as const, career: c.key, displayName: c.name },
+    { id: `reg-${c.key}-2`, type: 'regular' as const, career: c.key, displayName: c.name },
+    { id: `gld-${c.key}`,   type: 'golden'  as const, career: c.key, displayName: c.name },
+  ]),
+  { id: 'special-1', type: 'special', career: null, displayName: 'Your Choice' },
+  { id: 'special-2', type: 'special', career: null, displayName: 'Your Choice' },
+];
+
+function shuffleDeck(deck: OpportunityCard[]): OpportunityCard[] {
+  const d = [...deck];
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
 
 // ── Board definition ───────────────────────────────────────────────────────
 
@@ -269,7 +317,7 @@ export const BOARD_TILES: Array<{ type: string; name: string; description: strin
   { type: 'YACHT_HARBOR',          name: 'Yacht Harbor',        description: 'Pay 20,000 → +4 Happiness. Pay 80,000 → +8. Pay 160,000 → +12.' },
   { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
   { type: 'INSTAGRAM_FOLLOWERS',   name: 'Instagram Followers', description: 'Pay 20,000 → +4 Fame. Pay 80,000 → +10. Pay 160,000 → +16.' },
-  { type: 'STREAMER',              name: 'Streamer',            description: 'Career path entry. Roll a 1 (costs 10,000/attempt, max 3) OR Nepotism.' },
+  { type: 'STREAMER',              name: 'Streamer',            description: 'Career path entry. Roll a 1 (costs 15,000/attempt, max 2) OR Nepotism.' },
   { type: 'OPPORTUNITY_KNOCKS',    name: 'Opportunity Knocks',  description: 'Draw an Opportunity card.' },
 ];
 
@@ -484,6 +532,8 @@ function createPlayer(socketId: string, name: string, isHost = false): Player {
     successFormula: null,
     hasSubmittedFormula: false,
     luckCards: [],
+    heldOpportunityCards: [],
+    pendingGoldenEntry: false,
     inHospital: false,
     inJapan: false,
     isDoctor: false,
@@ -519,8 +569,17 @@ function createGameRoom(roomCode: string, hostSocketId: string): GameRoom {
     createdAt: Date.now(),
     startedAt: null,
     propertyOwners: new Map<number, string>(),
-    pendingStompDispatch: null
+    pendingStompDispatch: null,
+    opportunityDeck: shuffleDeck(OPPORTUNITY_CARDS)
   };
+}
+
+// ── Stat clamping ─────────────────────────────────────────────────────────
+function clampStats(player: Player): void {
+  if (player.money     < 0) player.money     = 0;
+  if (player.fame      < 0) player.fame      = 0;
+  if (player.happiness < 0) player.happiness = 0;
+  if (player.hp        < 0) player.hp        = 0;
 }
 
 // ── Lobby validation helpers ───────────────────────────────────────────────
@@ -654,7 +713,9 @@ function getFullState(room: GameRoom, requestingSocketId: string | null = null):
       pathTile: player.pathTile,
       isArtist: player.isArtist,
       copWaitTurns: player.copWaitTurns,
-      streamerAttemptsUsed: player.streamerAttemptsUsed
+      streamerAttemptsUsed: player.streamerAttemptsUsed,
+      // Phase 9: Held opportunity cards (only own cards revealed to self)
+      heldOpportunityCards: socketId === requestingSocketId ? player.heldOpportunityCards : []
     };
   }
 
@@ -886,19 +947,16 @@ function canPlayCard(room: GameRoom, roomCode: string, playerId: string): boolea
  *   - Roll >= 9: forced leave → position advances to position+1, inJapan=false, dispatchTile.
  *   - Roll < 9:  emit 'japan-stay-choice' to player socket; turn pauses for response.
  */
-function handleJapanTurnStart(room: GameRoom, roomCode: string, playerId: string): void {
+function handleJapanTurnStart(room: GameRoom, roomCode: string, playerId: string, d1: number, d2: number): void {
   const player = room.players.get(playerId);
   if (!player) return;
+
+  const japanRoll = d1 + d2;
 
   // Apply happiness and drain
   player.happiness += 2;
   const drain = Math.ceil(player.salary / 5);
   player.money -= drain;
-
-  // Roll 2d6 for forced leave check
-  const jd1 = Math.floor(Math.random() * 6) + 1;
-  const jd2 = Math.floor(Math.random() * 6) + 1;
-  const japanRoll = jd1 + jd2;
 
   if (japanRoll >= 9) {
     // FORCED LEAVE
@@ -913,10 +971,9 @@ function handleJapanTurnStart(room: GameRoom, roomCode: string, playerId: string
       costPaid: drain
     });
 
-    // Dispatch the new tile, then normal turn advance happens inside dispatchTile → advanceTurn
     dispatchTile(room, roomCode, playerId, player.position, japanRoll, 20);
   } else {
-    // STAY CHOICE — roll <= 8, player can choose
+    // STAY CHOICE — roll <= 8
     room.turnPhase = TURN_PHASES.TILE_RESOLVING;
     io.sockets.sockets.get(playerId)?.emit('japan-stay-choice', {
       playerName: player.name,
@@ -1049,12 +1106,6 @@ function advanceTurn(
   const nextPlayerId = room.turnOrder[room.currentTurnIndex];
   const nextPlayer = room.players.get(nextPlayerId);
 
-  // Phase 6: Japan Trip turn-start — if next player is inJapan, handle their Japan turn
-  if (nextPlayer && nextPlayer.inJapan) {
-    handleJapanTurnStart(room, roomCode, nextPlayerId);
-    return; // Japan turn-start handles its own flow (emit/dispatch)
-  }
-
   // Check skipNextTurn for new current player
   if (nextPlayer && nextPlayer.skipNextTurn) {
     nextPlayer.skipNextTurn = false;
@@ -1074,6 +1125,9 @@ function advanceTurn(
     currentPlayerName: nextPlayer?.name ?? '',
     turnNumber: room.turnHistory.length + 1
   });
+
+  // Clamp all player stats before broadcasting
+  for (const p of room.players.values()) clampStats(p);
 
   // Broadcast full state after every turn so clients can update stat grids immediately
   io.to(roomCode).emit('gameState', getFullState(room));
@@ -1111,15 +1165,17 @@ function handlePropertyLanding(
   const tileIndex = player.position;
   const ownerId = room.propertyOwners.get(tileIndex);
 
-  // Case 1: Unowned — prompt player to buy
+  // Case 1: Unowned — prompt player to buy (only if they can afford it)
   if (ownerId === undefined) {
     const cost = getPropertyCost(tileIndex);
+    const canAfford = player.money >= cost;
     room.turnPhase = TURN_PHASES.WAITING_FOR_PROPERTY_DECISION;
     io.to(playerId).emit('property-buy-prompt', {
       tileIndex,
       tileName: BOARD_TILES[tileIndex].name,
       cost,
-      currentMoney: player.money
+      currentMoney: player.money,
+      canAfford
     });
     return { action: 'buy_prompt', price: cost };
   }
@@ -1178,6 +1234,11 @@ function handlePropertyBuy(
   const player = room.players.get(playerId)!;
   const tileIndex = player.position;
   const cost = getPropertyCost(tileIndex);
+
+  if (player.money < cost) {
+    advanceTurn(room, roomCode, playerId, player.name, 0, player.position, player.position, 'PROPERTY_PASSED');
+    return;
+  }
 
   player.money -= cost;
   room.propertyOwners.set(tileIndex, playerId);
@@ -1291,7 +1352,13 @@ function handleCareerEntry(
     return;
   }
 
-  const { meetsRequirements, reason, fee } = checkEntryRequirements(player, pathConfig);
+  // Golden opportunity: waive degree + fee
+  const isGolden = player.pendingGoldenEntry;
+  if (isGolden) player.pendingGoldenEntry = false;
+
+  const { meetsRequirements, reason, fee } = isGolden
+    ? { meetsRequirements: true, reason: 'Golden Opportunity — free entry', fee: 0 }
+    : checkEntryRequirements(player, pathConfig);
 
   if (!meetsRequirements) {
     // D-06: show requirements, auto-advance
@@ -1307,8 +1374,8 @@ function handleCareerEntry(
     return;
   }
 
-  // Streamer special: route to streamer roll mechanic
-  if (pathConfig.entry.rollToEnter) {
+  // Streamer special: route to streamer roll mechanic (golden skips the roll requirement)
+  if (pathConfig.entry.rollToEnter && !isGolden) {
     player.streamerAttemptsUsed = 0;
     room.turnPhase = TURN_PHASES.WAITING_FOR_STREAMER_ROLL;
     io.to(playerId).emit('streamerEntryPrompt', {
@@ -1326,7 +1393,8 @@ function handleCareerEntry(
     requirements: reason,
     meetsRequirements: true,
     canAfford: true,
-    fee
+    fee,
+    isGolden
   });
   // Turn paused — waiting for career-enter or career-pass socket event
 }
@@ -1613,22 +1681,14 @@ function dispatchTile(
 
   switch (tileType) {
     case 'SPORTS_BETTING': {
-      // Phase 5: buy parlay for 10,000. Roll 1d6: 1 → gain 60,000; else → lose 10,000 stake
-      const sbStake = 10000;
-      player.money -= sbStake; // pay stake (negative allowed)
-      const sbRoll = Math.floor(Math.random() * 6) + 1;
-      if (sbRoll === 1) {
-        player.money += 60000; // win 6× = 60,000
-      }
-      io.to(roomCode).emit('tile-sports-betting', {
-        playerName: player.name,
-        stake: sbStake,
-        roll: sbRoll,
-        won: sbRoll === 1,
-        winAmount: sbRoll === 1 ? 60000 : 0,
-        newMoney: player.money
+      // Prompt player to buy parlay — turn paused until place-sports-bet event
+      room.turnPhase = TURN_PHASES.WAITING_FOR_SPORTS_BET;
+      io.to(playerId).emit('sports-betting-prompt', {
+        stake: 10000,
+        winAmount: 60000,
+        currentMoney: player.money,
+        canAfford: player.money >= 10000
       });
-      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'SPORTS_BETTING');
       break;
     }
 
@@ -1641,17 +1701,9 @@ function dispatchTile(
     }
 
     case 'NEPOTISM': {
-      // ECON-07: current player gains $1,000; chooses another player who receives $500
+      // Stub: give $1,000 to active player and advance (full beneficiary selection in Phase 10)
       player.money += 1000;
-      const otherPlayers = Array.from(room.players.values())
-        .filter(p => p.socketId !== playerId)
-        .map(p => ({ socketId: p.socketId, name: p.name }));
-      io.sockets.sockets.get(playerId)?.emit('nepotism-choose-beneficiary', {
-        otherPlayers,
-        benefactorName: player.name,
-        benefactorNewMoney: player.money
-      });
-      room.turnPhase = TURN_PHASES.TILE_RESOLVING;
+      advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'NEPOTISM');
       break;
     }
 
@@ -1738,7 +1790,27 @@ function dispatchTile(
       break;
     }
 
-    case 'OPPORTUNITY_KNOCKS':
+    case 'OPPORTUNITY_KNOCKS': {
+      // Draw top card; reshuffle if empty
+      if (room.opportunityDeck.length === 0) {
+        room.opportunityDeck = shuffleDeck(OPPORTUNITY_CARDS);
+        console.log(`[opportunity] Deck exhausted — reshuffled ${room.opportunityDeck.length} cards`);
+      }
+      const drawnCard = room.opportunityDeck.shift()!;
+      console.log(`[opportunity] ${player.name} drew "${drawnCard.displayName}" (${drawnCard.type})`);
+
+      // Pause turn for player to decide: use now or keep
+      room.turnPhase = TURN_PHASES.WAITING_FOR_OPPORTUNITY_DECISION;
+      io.to(playerId).emit('opportunity-card-drawn', {
+        card: drawnCard,
+        roll,
+        fromPosition,
+        tileIndex
+      });
+      // Turn paused — awaiting opportunity-decision socket event
+      break;
+    }
+
     case 'PAY_TAXES':
     case 'CIGARETTE_BREAK':
     case 'ART_GALLERY':
@@ -1748,7 +1820,7 @@ function dispatchTile(
     case 'OZEMPIC':
     case 'YACHT_HARBOR':
     case 'INSTAGRAM_FOLLOWERS': {
-      // Phase 5 stub: no effect yet — full mechanics in Phases 6–10
+      // Phase 5 stub: no effect yet — full mechanics in Phase 10
       console.log(`[tile] ${player.name} landed on ${tileName} (stub)`);
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, tileType);
       break;
@@ -1766,11 +1838,91 @@ function dispatchTile(
       break;
     }
 
-    case 'PAYDAY':
+    case 'PAYDAY': {
+      if (player.skipNextPayday) {
+        player.skipNextPayday = false;
+        io.to(roomCode).emit('payday-skipped', { playerName: player.name });
+        advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PAYDAY_SKIPPED');
+      } else {
+        const bonus = player.salary * 2;
+        player.money += bonus;
+        io.to(roomCode).emit('payday-landed', { playerId, playerName: player.name, amount: bonus, newMoney: player.money });
+        advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, 'PAYDAY_LANDED');
+      }
+      break;
+    }
     default:
       advanceTurn(room, roomCode, playerId, player.name, roll, fromPosition, tileIndex, tileType);
       break;
   }
+}
+
+// ── Post-move resolver (payday pass + stomp + tile dispatch) ──────────────
+function postMoveResolve(
+  room: GameRoom, roomCode: string, playerId: string, player: Player,
+  fromPosition: number, newPos: number, roll: number
+): void {
+  // Payday pass: player crossed tile 0 without landing on it — always pays out
+  if (fromPosition + roll >= BOARD_SIZE && newPos !== 0) {
+    console.log(`[payday-pass] ${player.name} crossed Payday: from=${fromPosition} roll=${roll} newPos=${newPos} salary=${player.salary}`);
+    player.money += player.salary;
+    io.to(roomCode).emit('payday-passed', { playerId, playerName: player.name, amount: player.salary, newMoney: player.money });
+  }
+
+  // Goomba Stomp — check for other players on the same tile
+  const stompTargets = Array.from(room.players.values())
+    .filter(p => p.socketId !== playerId && p.position === newPos);
+
+  console.log(`[stomp] ${player.name} landed on ${newPos} — ${stompTargets.length} other player(s) found: [${stompTargets.map(p => p.name).join(', ')}]`);
+
+  if (stompTargets.length > 0) {
+    room.pendingStompDispatch = { roll, fromPosition, tileIndex: newPos };
+    room.turnPhase = TURN_PHASES.WAITING_FOR_STOMP_DECISION;
+    const stomperSocket = io.sockets.sockets.get(playerId);
+    if (stomperSocket) {
+      stomperSocket.emit('stomp-available', {
+        targetNames: stompTargets.map(t => t.name),
+        isCop: player.isCop ?? false
+      });
+    }
+    return; // Paused — awaiting stomp-decision event
+  }
+
+  dispatchTile(room, roomCode, playerId, newPos, roll, fromPosition);
+}
+
+// ── Opportunity card use helper ───────────────────────────────────────────
+function useOpportunityCardNow(
+  room: GameRoom, roomCode: string, playerId: string, player: Player,
+  card: OpportunityCard, roll: number, fromPosition: number, _tileIndex: number
+): void {
+  const pathConfig = CAREER_PATHS[card.career!];
+  if (!pathConfig) return;
+
+  // Card goes to the bottom of the deck
+  room.opportunityDeck.push({ ...card });
+
+  // Teleport player to the career's board tile
+  const destTile = pathConfig.boardTile;
+  player.position = destTile;
+  io.to(roomCode).emit('move-token', {
+    playerId, playerName: player.name, roll, d1: 0, d2: 0,
+    fromPosition, toPosition: destTile
+  });
+  io.to(roomCode).emit('tile-landed', {
+    playerId, tileIndex: destTile,
+    tileType: BOARD_TILES[destTile].type,
+    tileName: BOARD_TILES[destTile].name
+  });
+  io.to(roomCode).emit('opportunity-card-used', {
+    playerId, playerName: player.name, card
+  });
+
+  // Golden: waive degree + fee for career entry
+  if (card.type === 'golden') player.pendingGoldenEntry = true;
+
+  // Trigger career entry prompt (normal rules, or waived if golden)
+  handleCareerEntry(room, roomCode, playerId, card.career!, roll, fromPosition, destTile);
 }
 
 // ── Connection handler ─────────────────────────────────────────────────────
@@ -1970,6 +2122,19 @@ io.on('connection', (socket) => {
     if (!player || room.turnOrder[room.currentTurnIndex] !== socket.id) return;
     if (room.turnPhase !== TURN_PHASES.WAITING_FOR_ROLL) return;
 
+    // Cop wait: skip turn (same logic as real roll-dice)
+    if (player.copWaitTurns > 0) {
+      player.copWaitTurns -= 1;
+      if (player.copWaitTurns === 0) {
+        enterPath(player, 'COP');
+        io.to(socket.id).emit('copWaitComplete', { playerName: player.name });
+      } else {
+        io.to(socket.id).emit('copWaiting', { playerName: player.name, turnsRemaining: player.copWaitTurns });
+      }
+      advanceTurn(room, roomCode, socket.id, player.name, 0, player.position, player.position, 'COP_WAIT');
+      return;
+    }
+
     // In hospital: use forced value as escape roll (1–6)
     if (player.inHospital) {
       const escapeRoll = Math.max(1, Math.min(6, Number(roll)));
@@ -1987,6 +2152,16 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Japan Trip intercept — forced roll used for stay/leave check
+    if (player.inJapan) {
+      const jRoll = Math.max(2, Math.min(12, Number(roll)));
+      const jd1 = Math.ceil(jRoll / 2), jd2 = Math.floor(jRoll / 2);
+      room.turnPhase = TURN_PHASES.MID_ROLL;
+      io.to(roomCode).emit('move-token', { playerId: socket.id, playerName: player.name, roll: jRoll, d1: jd1, d2: jd2, fromPosition: player.position, toPosition: player.position });
+      handleJapanTurnStart(room, roomCode, socket.id, jd1, jd2);
+      return;
+    }
+
     // Board: forced dice roll — normal movement from current position
     const forcedRoll = Math.max(1, Math.min(12, Number(roll)));
     const from = player.position;
@@ -1994,7 +2169,9 @@ io.on('connection', (socket) => {
     room.turnPhase = TURN_PHASES.MID_ROLL;
     io.to(roomCode).emit('move-token', { playerId: socket.id, playerName: player.name, roll: forcedRoll, d1: forcedRoll, d2: 0, fromPosition: from, toPosition: to });
     player.position = to;
-    dispatchTile(room, roomCode, socket.id, to, forcedRoll, from);
+    room.turnPhase = TURN_PHASES.LANDED;
+    io.to(roomCode).emit('tile-landed', { playerId: socket.id, tileIndex: to, tileType: BOARD_TILES[to].type, tileName: BOARD_TILES[to].name });
+    postMoveResolve(room, roomCode, socket.id, player, from, to, forcedRoll);
   });
 
   // ── Hospital pay-to-escape handler ──────────────────────────────────────
@@ -2079,16 +2256,10 @@ io.on('connection', (socket) => {
     if (player.copWaitTurns > 0) {
       player.copWaitTurns -= 1;
       if (player.copWaitTurns === 0) {
-        // Training complete — enter Cop path next turn
         enterPath(player, 'COP');
-        io.to(roomCode).emit('copWaitComplete', {
-          playerName: player.name
-        });
+        io.to(socket.id).emit('copWaitComplete', { playerName: player.name });
       } else {
-        io.to(roomCode).emit('copWaiting', {
-          playerName: player.name,
-          turnsRemaining: player.copWaitTurns
-        });
+        io.to(socket.id).emit('copWaiting', { playerName: player.name, turnsRemaining: player.copWaitTurns });
       }
       advanceTurn(room, roomCode, socket.id, player.name, 0, player.position, player.position, 'COP_WAIT');
       return;
@@ -2123,10 +2294,21 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Server-authoritative 2d6 roll (main board; 1d6 for career paths deferred to Phase 7)
+    // Server-authoritative 2d6 roll
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const roll = d1 + d2;
+
+    // Phase 6: Japan Trip intercept — use player's roll for stay/leave check
+    if (player.inJapan) {
+      room.turnPhase = TURN_PHASES.MID_ROLL;
+      io.to(roomCode).emit('move-token', {
+        playerId: socket.id, playerName: player.name,
+        roll, d1, d2, fromPosition: player.position, toPosition: player.position
+      });
+      handleJapanTurnStart(room, roomCode, socket.id, d1, d2);
+      return;
+    }
 
     const fromPosition = player.position;
     const newPos = (fromPosition + roll) % BOARD_SIZE;
@@ -2155,21 +2337,7 @@ io.on('connection', (socket) => {
 
     console.log(`[roll-dice] ${player.name} rolled ${roll} (${d1}+${d2}): pos ${fromPosition} → ${newPos} (${BOARD_TILES[newPos].name})`);
 
-    // Phase 6: Goomba Stomp — optional. Check for occupants; if present, prompt stomper.
-    const stompTargets = Array.from(room.players.values())
-      .filter(p => p.socketId !== socket.id && p.position === newPos);
-
-    if (stompTargets.length > 0) {
-      room.pendingStompDispatch = { roll, fromPosition, tileIndex: newPos };
-      room.turnPhase = TURN_PHASES.WAITING_FOR_STOMP_DECISION;
-      socket.emit('stomp-available', {
-        targetNames: stompTargets.map(t => t.name),
-        isCop: player.isCop ?? false
-      });
-      return; // Paused — awaiting stomp-decision event
-    }
-
-    dispatchTile(room, roomCode, socket.id, newPos, roll, fromPosition);
+    postMoveResolve(room, roomCode, socket.id, player, fromPosition, newPos, roll);
   });
 
   socket.on('nepotism-select', ({ chosenPlayerId }: { chosenPlayerId: string }) => {
@@ -2261,6 +2429,117 @@ io.on('connection', (socket) => {
       accept ? 'PROPERTY_BOUGHT' : 'PROPERTY_PASSED');
   });
 
+  // ── Sports betting handler ────────────────────────────────────────────────
+  socket.on('place-sports-bet', ({ accept }: { accept: boolean }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return;
+    const room = getRoom(roomCode);
+    if (!room) return;
+    if (room.turnPhase !== TURN_PHASES.WAITING_FOR_SPORTS_BET) return;
+    const currentPlayerId = room.turnOrder[room.currentTurnIndex];
+    if (socket.id !== currentPlayerId) return;
+    const player = room.players.get(socket.id)!;
+    const sbStake = 10000;
+    if (accept && player.money >= sbStake) {
+      player.money -= sbStake;
+      const sbRoll = Math.floor(Math.random() * 6) + 1;
+      if (sbRoll === 1) player.money += 60000;
+      io.to(roomCode).emit('tile-sports-betting', {
+        playerName: player.name, stake: sbStake, roll: sbRoll,
+        won: sbRoll === 1, winAmount: sbRoll === 1 ? 60000 : 0, newMoney: player.money
+      });
+    }
+    advanceTurn(room, roomCode, socket.id, player.name, 0, player.position, player.position,
+      accept ? 'SPORTS_BET_PLACED' : 'SPORTS_BET_PASSED');
+  });
+
+  // ── Opportunity card decision ─────────────────────────────────────────────
+  socket.on('opportunity-decision', ({ action, cardId, roll, fromPosition, tileIndex }:
+    { action: 'use-now' | 'keep'; cardId: string; roll: number; fromPosition: number; tileIndex: number }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return;
+    const room = getRoom(roomCode);
+    if (!room || room.turnPhase !== TURN_PHASES.WAITING_FOR_OPPORTUNITY_DECISION) return;
+    const currentPlayerId = room.turnOrder[room.currentTurnIndex];
+    if (socket.id !== currentPlayerId) return;
+    const player = room.players.get(socket.id)!;
+
+    // Find the card — it was shifted off the deck; reconstruct from id
+    const card = OPPORTUNITY_CARDS.find(c => c.id === cardId)!;
+
+    if (action === 'keep') {
+      player.heldOpportunityCards.push({ ...card });
+      io.to(roomCode).emit('opportunity-card-kept', { playerId: socket.id, playerName: player.name, card });
+      io.to(socket.id).emit('held-cards-updated', { cards: player.heldOpportunityCards });
+      advanceTurn(room, roomCode, socket.id, player.name, roll, fromPosition, tileIndex, 'OPPORTUNITY_KEPT');
+      return;
+    }
+
+    // Use now
+    if (card.type === 'special') {
+      // Prompt player to pick a career
+      room.turnPhase = TURN_PHASES.WAITING_FOR_SPECIAL_CARD_CHOICE;
+      io.to(socket.id).emit('special-card-career-pick', {
+        careers: OPP_CAREERS,
+        cardId,
+        roll,
+        fromPosition,
+        tileIndex
+      });
+      return;
+    }
+
+    // Regular or golden — teleport to career tile and enter
+    useOpportunityCardNow(room, roomCode, socket.id, player, card, roll, fromPosition, tileIndex);
+  });
+
+  // ── Special card career selection ─────────────────────────────────────────
+  socket.on('special-card-career-selected', ({ career, cardId, roll, fromPosition, tileIndex }:
+    { career: string; cardId: string; roll: number; fromPosition: number; tileIndex: number }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return;
+    const room = getRoom(roomCode);
+    if (!room || room.turnPhase !== TURN_PHASES.WAITING_FOR_SPECIAL_CARD_CHOICE) return;
+    const currentPlayerId = room.turnOrder[room.currentTurnIndex];
+    if (socket.id !== currentPlayerId) return;
+    const player = room.players.get(socket.id)!;
+    const card = OPPORTUNITY_CARDS.find(c => c.id === cardId)!;
+    const chosenCareer = OPP_CAREERS.find(c => c.key === career);
+    if (!chosenCareer) return;
+    const cardWithCareer: OpportunityCard = { ...card, career, displayName: chosenCareer.name };
+    useOpportunityCardNow(room, roomCode, socket.id, player, cardWithCareer, roll, fromPosition, tileIndex);
+  });
+
+  // ── Use held opportunity card (replaces roll) ─────────────────────────────
+  socket.on('use-held-card', ({ cardId }: { cardId: string }) => {
+    const roomCode = findRoomCodeBySocketId(socket.id);
+    if (!roomCode) return;
+    const room = getRoom(roomCode);
+    if (!room || room.turnPhase !== TURN_PHASES.WAITING_FOR_ROLL) return;
+    const currentPlayerId = room.turnOrder[room.currentTurnIndex];
+    if (socket.id !== currentPlayerId) return;
+    const player = room.players.get(socket.id)!;
+
+    const idx = player.heldOpportunityCards.findIndex(c => c.id === cardId);
+    if (idx === -1) return;
+    const card = player.heldOpportunityCards.splice(idx, 1)[0];
+    io.to(socket.id).emit('held-cards-updated', { cards: player.heldOpportunityCards });
+
+    if (card.type === 'special') {
+      room.turnPhase = TURN_PHASES.WAITING_FOR_SPECIAL_CARD_CHOICE;
+      io.to(socket.id).emit('special-card-career-pick', {
+        careers: OPP_CAREERS,
+        cardId: card.id,
+        roll: 0,
+        fromPosition: player.position,
+        tileIndex: player.position
+      });
+      return;
+    }
+
+    useOpportunityCardNow(room, roomCode, socket.id, player, card, 0, player.position, player.position);
+  });
+
   // ── Phase 6: Goomba Stomp decision ──────────────────────────────────────
   socket.on('stomp-decision', ({ accept }: { accept: boolean }) => {
     const roomCode = findRoomCodeBySocketId(socket.id);
@@ -2321,7 +2600,7 @@ io.on('connection', (socket) => {
     // Cop special: wait 1 turn (D-08)
     if (pathConfig.entry.waitTurns) {
       player.copWaitTurns = pathConfig.entry.waitTurns;
-      io.to(roomCode).emit('copWaitStarted', {
+      io.to(socket.id).emit('copWaitStarted', {
         playerName: player.name,
         turnsToWait: pathConfig.entry.waitTurns,
         feePaid: fee

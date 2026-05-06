@@ -596,8 +596,20 @@ socket.on('ping', () => { socket.emit('pong'); });
   // ── Phase 6: Goomba Stomp event handler (host screen) ────────────────
 
   socket.on('goomba-stomped', ({ stomperName, stompedNames, destination }: { stomperName: string; stompedNames: string[]; isCopStomp: boolean; destination: number }) => {
-    const destLabel = destination === 10 ? 'Prison' : 'Japan Trip';
+    const destLabel = destination === 10 ? 'Prison' : 'Payday';
     addTurnHistory(`STOMP! ${stomperName} → stomped ${stompedNames.join(', ')} to ${destLabel}`);
+  });
+
+  socket.on('payday-passed', ({ playerName, amount }: { playerId: string; playerName: string; amount: number; newMoney: number }) => {
+    addTurnHistory(`${playerName} passed Payday: +$${amount.toLocaleString()} salary`);
+  });
+
+  socket.on('payday-landed', ({ playerName, amount }: { playerId: string; playerName: string; amount: number; newMoney: number }) => {
+    addTurnHistory(`${playerName} landed on Payday: +$${amount.toLocaleString()} (2× salary!)`);
+  });
+
+  socket.on('payday-skipped', ({ playerName }: { playerName: string }) => {
+    addTurnHistory(`${playerName} passed Payday but couldn't collect (was stomped!)`);
   });
 
   // ── Phase 7: Property event handlers (host screen) ─────────────────
@@ -653,6 +665,26 @@ socket.on('ping', () => { socket.emit('pong'); });
     addTurnHistory(`${data.playerName} redirected to University (loan payment)`);
   });
 
+  socket.on('opportunity-card-drawn', (data: any) => {
+    // Host just sees a log — player sees the decision overlay
+    const typeTag = data.card.type === 'golden' ? '⭐' : data.card.type === 'special' ? '🎯' : '🃏';
+    addTurnHistory(`${data.playerName} drew ${typeTag} ${data.card.type === 'special' ? 'Special Opportunity' : data.card.displayName}`);
+  });
+
+  socket.on('opportunity-card-kept', (data: any) => {
+    addTurnHistory(`${data.playerName} saved Opportunity card (${data.card.displayName})`);
+  });
+
+  socket.on('opportunity-card-used', (data: any) => {
+    const label = data.card.type === 'golden' ? '⭐ Golden' : data.card.type === 'special' ? '🎯 Special' : '';
+    addTurnHistory(`${data.playerName} used ${label} Opportunity → ${data.card.displayName}`);
+  });
+
+  socket.on('tile-sports-betting', (data: any) => {
+    const result = data.won ? `WON $${data.winAmount.toLocaleString()}!` : `lost $${data.stake.toLocaleString()}`;
+    addTurnHistory(`${data.playerName} Sports Bet: rolled ${data.roll} — ${result}`);
+  });
+
 })();
 
 // ── Player Game Logic ──────────────────────────────────────────────────────
@@ -681,6 +713,7 @@ socket.on('ping', () => { socket.emit('pong'); });
   let mySocketId: string | null = null;
   let currentTurnPlayerId: string | null = null;
   let currentTurnPhase: string = 'WAITING_FOR_ROLL';
+  let isCopWaiting = false;
   // Board tile data received on gameStarted — used to look up tile info by position
   let boardTilesData: Array<{type: string; name: string; description: string}> = [];
 
@@ -793,7 +826,13 @@ socket.on('ping', () => { socket.emit('pong'); });
   socket.on('nextTurn', ({ currentPlayer, currentPlayerName }: { currentTurnIndex: number; currentPlayer: string; currentPlayerName: string; turnNumber: number }) => {
     currentTurnPlayerId = currentPlayer;
     currentTurnPhase    = 'WAITING_FOR_ROLL';
-    updateRollButton();
+    if (isCopWaiting && currentPlayer === mySocketId) {
+      rollBtn.textContent = 'Skip Training Turn';
+      rollBtn.style.background = '#f0c040';
+      rollBtn.disabled = false;
+    } else {
+      updateRollButton();
+    }
     updateTurnIndicator(currentPlayerName);
   });
 
@@ -874,6 +913,10 @@ socket.on('ping', () => { socket.emit('pong'); });
           tileNameEl.textContent = 'Currently on: ' + tile.name;
           tileTextEl.textContent = tile.description;
         }
+      }
+      // Phase 9: sync held opportunity cards
+      if (Array.isArray(me.heldOpportunityCards)) {
+        renderHeldCards(me.heldOpportunityCards);
       }
     }
     updateRollButton();
@@ -1085,9 +1128,155 @@ socket.on('ping', () => { socket.emit('pong'); });
   // ── Phase 6: Goomba Stomp event handler (player screen) ──────────────
 
   socket.on('goomba-stomped', ({ stomperName, stompedNames, destination }: { stomperName: string; stompedNames: string[]; isCopStomp: boolean; destination: number }) => {
-    const destLabel = destination === 10 ? 'Prison' : 'Japan Trip';
+    const destLabel = destination === 10 ? 'Prison' : 'Payday';
     const msg = `${stomperName} stomped ${stompedNames.join(', ')}! Sent to ${destLabel}!`;
     if (lastRollDisplay) lastRollDisplay.textContent = msg;
+  });
+
+  socket.on('payday-passed', ({ playerId, playerName, amount, newMoney }: { playerId: string; playerName: string; amount: number; newMoney: number }) => {
+    if (mySocketId === playerId) {
+      if (statMoneyEl) statMoneyEl.textContent = `$${newMoney.toLocaleString()}`;
+      if (lastRollDisplay) lastRollDisplay.textContent = `Passed Payday! +$${amount.toLocaleString()} salary`;
+    }
+  });
+
+  socket.on('payday-landed', ({ playerId, playerName, amount, newMoney }: { playerId: string; playerName: string; amount: number; newMoney: number }) => {
+    if (mySocketId === playerId) {
+      if (statMoneyEl) statMoneyEl.textContent = `$${newMoney.toLocaleString()}`;
+      if (lastRollDisplay) lastRollDisplay.textContent = `DOUBLE PAYDAY! +$${amount.toLocaleString()} (2× salary!)`;
+    }
+  });
+
+  // ── Phase 9: Opportunity card handlers (player screen) ──────────────
+
+  // Holds context for the current drawn card decision
+  let pendingOppCard: any = null;
+
+  socket.on('opportunity-card-drawn', (data: any) => {
+    // Only the active player sees the decision overlay
+    if (mySocketId !== currentTurnPlayerId) return;
+    pendingOppCard = data;
+    const { card, roll: oppRoll, fromPosition: oppFrom, tileIndex: oppTile } = data;
+    const overlay   = document.getElementById('opportunity-card-overlay');
+    const badge     = document.getElementById('opp-card-badge');
+    const titleEl   = document.getElementById('opp-card-title');
+    const subtitle  = document.getElementById('opp-card-subtitle');
+    if (!overlay || !badge || !titleEl || !subtitle) return;
+
+    const typeLabels: Record<string, string> = { regular: 'Opportunity', golden: '⭐ Golden Opportunity', special: '🎯 Special Opportunity' };
+    const typeColors: Record<string, string> = { regular: '#f0c040', golden: '#fbbf24', special: '#a78bfa' };
+    badge.textContent  = typeLabels[card.type] ?? 'Opportunity';
+    badge.style.color  = typeColors[card.type] ?? '#f0c040';
+
+    if (card.type === 'special') {
+      titleEl.textContent   = 'Your Choice';
+      subtitle.textContent  = 'Use now to pick any career, or save for later.';
+    } else {
+      titleEl.textContent   = card.displayName;
+      const note = card.type === 'golden' ? 'Free entry — degree & fee waived!' : 'Normal entry requirements apply.';
+      subtitle.textContent  = note;
+    }
+    overlay.style.display = 'flex';
+
+    // Wire buttons with the current card context
+    const btnUse  = document.getElementById('opp-btn-use-now') as HTMLButtonElement;
+    const btnKeep = document.getElementById('opp-btn-keep') as HTMLButtonElement;
+    const newBtnUse  = btnUse?.cloneNode(true)  as HTMLButtonElement;
+    const newBtnKeep = btnKeep?.cloneNode(true) as HTMLButtonElement;
+    btnUse?.parentNode?.replaceChild(newBtnUse,  btnUse);
+    btnKeep?.parentNode?.replaceChild(newBtnKeep, btnKeep);
+
+    newBtnUse?.addEventListener('click', () => {
+      overlay.style.display = 'none';
+      socket.emit('opportunity-decision', { action: 'use-now', cardId: card.id, roll: oppRoll, fromPosition: oppFrom, tileIndex: oppTile });
+      pendingOppCard = null;
+    });
+    newBtnKeep?.addEventListener('click', () => {
+      overlay.style.display = 'none';
+      socket.emit('opportunity-decision', { action: 'keep', cardId: card.id, roll: oppRoll, fromPosition: oppFrom, tileIndex: oppTile });
+      pendingOppCard = null;
+    });
+  });
+
+  socket.on('opportunity-card-kept', (data: any) => {
+    if (lastRollDisplay && mySocketId !== currentTurnPlayerId) {
+      lastRollDisplay.textContent = `${data.playerName} saved an Opportunity card`;
+    }
+  });
+
+  socket.on('opportunity-card-used', (data: any) => {
+    if (lastRollDisplay) {
+      const label = data.card.type === 'golden' ? 'Golden Opportunity' : 'Opportunity card';
+      lastRollDisplay.textContent = `${data.playerName} used ${label} → heading to ${data.card.displayName}`;
+    }
+  });
+
+  // Special card: career picker modal
+  socket.on('special-card-career-pick', (data: any) => {
+    const { careers, cardId, roll: spRoll, fromPosition: spFrom, tileIndex: spTile } = data;
+    const overlay = document.getElementById('special-card-overlay');
+    const list    = document.getElementById('special-card-career-list');
+    if (!overlay || !list) return;
+    list.innerHTML = '';
+    for (const c of careers) {
+      const btn = document.createElement('button');
+      btn.textContent = c.name;
+      btn.style.cssText = 'padding:10px;font-size:0.95rem;font-weight:600;background:#0f3460;color:#eee;border:1px solid #555;border-radius:6px;cursor:pointer;';
+      btn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        socket.emit('special-card-career-selected', { career: c.key, cardId, roll: spRoll, fromPosition: spFrom, tileIndex: spTile });
+      });
+      list.appendChild(btn);
+    }
+    overlay.style.display = 'flex';
+  });
+
+  // Held cards: render from gameState
+  function renderHeldCards(cards: any[]): void {
+    const section  = document.getElementById('held-cards-section');
+    const listEl   = document.getElementById('held-cards-list');
+    if (!section || !listEl) return;
+    if (cards.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    listEl.innerHTML = '';
+    for (const card of cards) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;font-size:0.85rem;color:#eee;';
+      const typeTag = card.type === 'golden' ? '⭐' : card.type === 'special' ? '🎯' : '🃏';
+      label.textContent = `${typeTag} ${card.type === 'special' ? 'Special' : card.displayName}`;
+      const btn = document.createElement('button');
+      btn.textContent = 'Use';
+      btn.style.cssText = 'padding:4px 12px;font-size:0.8rem;font-weight:700;background:#f0c040;color:#1a1a2e;border:none;border-radius:4px;cursor:pointer;';
+      btn.addEventListener('click', () => { socket.emit('use-held-card', { cardId: card.id }); });
+      row.appendChild(label);
+      row.appendChild(btn);
+      listEl.appendChild(row);
+    }
+  }
+
+  // Sports betting prompt
+  const sportsBetPrompt = document.getElementById('sports-bet-prompt') as HTMLElement | null;
+  const sportsBetMsg    = document.getElementById('sports-bet-msg')    as HTMLElement | null;
+  const btnBetYes       = document.getElementById('btn-sports-bet-yes') as HTMLButtonElement | null;
+  const btnBetNo        = document.getElementById('btn-sports-bet-no')  as HTMLButtonElement | null;
+
+  socket.on('sports-betting-prompt', ({ stake, winAmount, currentMoney, canAfford }: any) => {
+    if (sportsBetPrompt && sportsBetMsg) {
+      sportsBetMsg.textContent = `Buy parlay for $${stake.toLocaleString()}? Win $${winAmount.toLocaleString()} on a roll of 1. You have $${currentMoney.toLocaleString()}.`;
+      if (btnBetYes) { btnBetYes.disabled = !canAfford; btnBetYes.style.opacity = canAfford ? '1' : '0.4'; }
+      sportsBetPrompt.style.display = 'block';
+    }
+  });
+
+  btnBetYes?.addEventListener('click', () => {
+    if (sportsBetPrompt) sportsBetPrompt.style.display = 'none';
+    socket.emit('place-sports-bet', { accept: true });
+  });
+  btnBetNo?.addEventListener('click', () => {
+    if (sportsBetPrompt) sportsBetPrompt.style.display = 'none';
+    socket.emit('place-sports-bet', { accept: false });
   });
 
   // ── Phase 7: Property event handlers (player screen) ────────────────
@@ -1101,9 +1290,14 @@ socket.on('ping', () => { socket.emit('pong'); });
     if (propertyChoiceDiv) propertyChoiceDiv.style.display = 'none';
   }
 
-  socket.on('property-buy-prompt', ({ tileName, cost, currentMoney }: { tileIndex: number; tileName: string; cost: number; currentMoney: number }) => {
+  socket.on('property-buy-prompt', ({ tileName, cost, currentMoney, canAfford }: { tileIndex: number; tileName: string; cost: number; currentMoney: number; canAfford: boolean }) => {
     if (propertyChoiceDiv && propertyChoiceMsg) {
-      propertyChoiceMsg.textContent = `${tileName} is for sale! Cost: $${cost.toLocaleString()}. You have $${currentMoney.toLocaleString()}.`;
+      const affordText = canAfford ? '' : ' (not enough money)';
+      propertyChoiceMsg.textContent = `${tileName} is for sale! Cost: $${cost.toLocaleString()}. You have $${currentMoney.toLocaleString()}.${affordText}`;
+      if (btnBuyProperty) {
+        btnBuyProperty.disabled = !canAfford;
+        btnBuyProperty.style.opacity = canAfford ? '1' : '0.4';
+      }
       propertyChoiceDiv.style.display = 'block';
     }
   });
@@ -1351,27 +1545,37 @@ socket.on('ping', () => { socket.emit('pong'); });
   // ── Phase 8: Cop Wait ────────────────────────────────────────────────
 
   socket.on('copWaitStarted', (_data: any) => {
-    const turnInd = document.getElementById('turn-indicator');
-    if (turnInd) {
-      turnInd.textContent = 'Cop training: skip 1 turn before entering';
-      turnInd.style.color = '#f0c040';
-    }
+    isCopWaiting = true;
+    showStatusBanner('Cop training begins — your next turn will be a training skip', '#f0c040');
+    if (lastRollDisplay) lastRollDisplay.textContent = 'Accepted! Report to the Police Academy on your next turn.';
   });
 
   socket.on('copWaitComplete', (_data: any) => {
-    const turnInd = document.getElementById('turn-indicator');
-    if (turnInd) {
-      turnInd.textContent = 'Training complete. Entering Cop path.';
-      turnInd.style.color = '#4ade80';
+    isCopWaiting = false;
+    rollBtn.textContent = 'Roll Dice';
+    rollBtn.style.background = '';
+    clearStatusBanner();
+    if (lastRollDisplay) lastRollDisplay.textContent = 'Training complete! Entering Cop path next turn.';
+  });
+
+  socket.on('copWaiting', (_data: any) => {
+    isCopWaiting = false;
+    rollBtn.textContent = 'Roll Dice';
+    rollBtn.style.background = '';
+    if (lastRollDisplay) lastRollDisplay.textContent = 'At Police Academy — training in progress. Turn skipped.';
+  });
+
+  socket.on('tile-sports-betting', (data: any) => {
+    if (mySocketId === currentTurnPlayerId) {
+      const msg = data.won
+        ? `You rolled ${data.roll} — WON $${data.winAmount.toLocaleString()}!`
+        : `You rolled ${data.roll} — lost $${data.stake.toLocaleString()}.`;
+      if (lastRollDisplay) lastRollDisplay.textContent = msg;
     }
   });
 
-  socket.on('copWaiting', (data: any) => {
-    const turnInd = document.getElementById('turn-indicator');
-    if (turnInd) {
-      turnInd.textContent = `Waiting at Police Academy... (${data.turnsRemaining} turn remaining)`;
-      turnInd.style.color = '#f0c040';
-    }
+  socket.on('held-cards-updated', ({ cards }: any) => {
+    renderHeldCards(cards);
   });
 
   // ── Phase 8: Tile 3 Redirect ─────────────────────────────────────────

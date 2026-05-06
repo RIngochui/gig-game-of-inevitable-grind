@@ -115,19 +115,9 @@ describe('JAPAN-03 2d6 roll >= 9 forces leave', () => {
     player.position = 20;
     player.salary = 10000;
 
-    // Mock Math.random so 2d6 produces 9: 4+5
-    // floor((3/6)*6)+1 = 4, floor((4/6)*6)+1 = 5 → 4+5 = 9 >= 9 → forced leave
-    const origRandom = Math.random;
-    let callCount = 0;
-    Math.random = () => {
-      callCount++;
-      return callCount % 2 === 1 ? 3 / 6 : 4 / 6;
-    };
-
+    // Pass d1=4, d2=5 → roll=9 >= 9 → forced leave
     const { handleJapanTurnStart } = require('../server');
-    handleJapanTurnStart(room, 'TEST', 'socket-a');
-
-    Math.random = origRandom;
+    handleJapanTurnStart(room, 'TEST', 'socket-a', 4, 5);
 
     // Forced leave: inJapan=false, position advances to 21
     expect((player as any).inJapan).toBe(false);
